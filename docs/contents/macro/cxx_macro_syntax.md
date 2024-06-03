@@ -1,7 +1,14 @@
 ## [C++ 宏编程](#)
 > **介绍**：在C和C++中，宏（**Macro**）是由预处理器处理的一种文本替换机制，宏可以在编译之前对代码进行简单的替换和扩展。
 
+---
 
+- [1. 预处理器](#1-预处理器)
+- [2. 预处理指令](#2-预处理指令)
+- [3. 预处理器运算符](#3-预处理器运算符)
+- [4. 预定义宏](#4-预定义宏)
+
+---
 ### [1. 预处理器](#)
 预处理器是将源文件的文本作为翻译的第一阶段操作的**文本处理器**，在将 C 和 C++ 文件传递到编译器之前，预处理器将对这些文件执行预先操作。
 可以使用预处理器有**条件地编译代码**、**插入文件**、指定编译时错误消息以及将计算机特定规则应用于代码节。
@@ -67,7 +74,14 @@ ISO C++标准宏。
 |:----------|:--------|:--------|:---------------------|:------------------------|:----------------|
 | #if       | #elif   | #else   | #ifdef               | #ifndef(C++23)          | #elifdef(C++23) | 
 | #elifndef | #endif  | #Pragma | #error               | #warning(C++23)         | #import(MSVC专用) |
-| #define   | #undef  |  #line  | import(C++20 尚未完全实现) | module(C++20 尚未完全实现) | ` `             |
+| #define   | #undef  |  #line  | import(C++20 尚未完全实现) | module(C++20 尚未完全实现) | #include(不解释)   |
+
+> * 从 Visual Studio 2022 版本 17.1 起，C++20 标准模块（import module）已在 Microsoft C++ 编译器中完全实现。 [使用说明链接](https://learn.microsoft.com/zh-cn/cpp/cpp/modules-cpp?view=msvc-170)
+> * GCC 11+ 支持部分功能。
+> * Clang 8+ 支持部分功能。
+> * Intel C++ 2023.1 支持部分功能。
+> 
+> * C++ 20 模块指令，将会单开一节详细讲解。
 
 #### 2.1 条件指令
 预处理器支持有条件地编译源文件的某些部分。这一行为由 `#if、#else、#elif、#ifdef、#ifndef、#elifdef、#elifndef (C++23 起) 与 #endif` 指令所控制。
@@ -290,15 +304,25 @@ int main()
 报错信息为 Assertion failed: 2+2 == 5, file test.cc, line 777。
 
 #### 2.5 #define 宏定义简介
-预处理器支持文本宏替换。也支持函数式文本宏替换，如果定义跨行使用 **\** 链接，此处简单解释，之后再详细介绍。
+预处理器支持文本宏替换。也支持函数式文本宏替换，如果定义跨行使用 **\** 链接。
 
 * **对象式宏**（object-like macro）以替换列表替换每次出现的被定义标识符。#define 指令的版本 (1) 准确表现如此。
 * **函数式宏**（function-like macro）以替换列表替换每次出现的被定义标识符，可选地接受一定量的实参，它们随即替换掉替换列表中出现的任何对应的形参。
     * 额外的实参（是谓可变实参）可用 **\_\_VA\_ARGS\_\_** 标识符访问，它会被与要被替换的标识符一起提供的实参替换。
     * 替换列表可以含有记号序列 **\_\_VA_OPT\_\_(内容(可选))** ，如果 **\_\_VA\_ARGS\_\_** 非空，那么它会被内容 ﻿替换，否则不展开成任何内容。
 
-> `__VA_OPT__` 在C++ 20 引入，许多编译器未必支持。
-  
+> `__VA_OPT__` 在C++ 20 引入，许多编译器未必支持。 
+> * MSVC 19.25+ 支持，但需要设置 `/Zc:preprocessor` 选项。
+> * GCC 12+ 支持
+
+实验 `__VA_OPT__` 设置CMake。
+```cmake
+#CMake设置
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    add_compile_options("/Zc:preprocessor")
+endif()
+```  
+
 | 指令                       | 说明              | 可否使用 |
 |:-------------------------|:----------------|:-----|
 | #define 标识符 替换列表(可选)     | （1）             | YES  |
@@ -327,9 +351,8 @@ G(a, b, c) // 替换为 f(0, a, b, c)
 G(a, )     // 替换为 f(0, a)
 G(a)       // 替换为 f(0, a)
  
-#define SDEF(sname, ...) S sname __VA_OPT__(= { __VA_ARGS__ })
-SDEF(foo);       // 替换为 S foo;
-SDEF(bar, 1, 2); // 替换为 S bar = { 1, 2 };
+#define SDEF(sname, ...) std::vector<int> sname __VA_OPT__(= { __VA_ARGS__ })
+SDEF(bar, 1, 2); // 替换为 std::vector<int> bar = { 1, 2 };
 
 define DEBUG_PRINT(fmt, ...) \
     fprintf(stderr, "DEBUG: " fmt __VA_OPT__(,) __VA_ARGS__)
@@ -340,7 +363,6 @@ int main() {
     return 0;
 }
 ```
-
 输出打印例子
 ```cpp
 template<typename T, typename ...Args>
@@ -395,7 +417,149 @@ MUSE_ADD_TOOLKIT( 5 + 6, 78-9); // (11) + (69)
 #### 2.8 #import
 过去一直合并类型库中的信息。 类型库的内容将转换为 C++ 类，主要描述 COM 接口， MSVC专属。 还有 `#using` 都属于MSVC专属，不推荐使用。
 
+
+#### 2.9 宏的字符串特性
+如何宏定义中有字符串，它会自动连接，不必单向双引号问题，但是两个字符串之间需要存在**空格**。
+下面的 PONDER_DI_VERSION_STRING_GET 和 STRING_TEST就是利用这个特性。
+```cpp
+#define PONDER_DI_STRINGIFY(x) #x
+
+#define PONDER_DI_VERSION_STRING_GET(major, minor, patch) \
+    PONDER_DI_STRINGIFY(major) "." PONDER_DI_STRINGIFY(minor) "." PONDER_DI_STRINGIFY(patch)
+
+#define STRING_TEST "name" " " "is" " " "my" " " "love"
+
+#define STRING_APPEND(str, append) str "," append
+
+int main()
+{
+    auto str1 = STRING_TEST;
+    auto str2 = STRING_APPEND("Hello","World");
+    
+    std::cout << str1 << std::endl; //name is my love
+    std::cout << str2 << std::endl; //Hello,World
+}
+```
+
+### 3. 预处理器运算符
+在 #define 指令的上下文中使用了四个预处理器特定运算符, 标准运算符主要为 #、##、defined 运算符
+
+|运算符| 	操作                                |
+|:---|:-----------------------------------|
+|字符串化运算符 (#)| 	使对应的实参用双引号引起来                     |
+|字符化运算符 (#@)| 	使相应的参数用单引号括起来并被视为字符（Microsoft 专用） |
+|标记粘贴运算符 (##)| 	允许将用作实参的令牌连接起来形成其他令牌              |
+|defined 运算符| 	简化某些宏指令中复合表达式的编写（很简单不必解释）         |
+
+#### 3.1 \# 运算符
+字符串化运算符,使对应的实参用双引号引起来。
+
+* `#`出现于 `__VA_ARGS__` 之前时，展开后的 `__VA_ARGS__` 整体被包在引号中：
+
+```cpp
+#define TO_STRING(x) #x
+
+TO_STRING(WONIMADE) // "TO_STRING(WONIMADE)"
+
+#define showlist(...) puts(#__VA_ARGS__)
+showlist();            // 展开成 puts("")
+showlist(1, "x", int); // 展开成 puts("1, \"x\", int")
+
+
+#define PONDER_DI_STRINGIFY(x) #x
+
+#define PONDER_DI_VERSION_STRING_GET(major, minor, patch) \
+    PONDER_DI_STRINGIFY(major) "." PONDER_DI_STRINGIFY(minor) "." PONDER_DI_STRINGIFY(patch)
+    
+PONDER_DI_VERSION_STRING_GET(1,9,1) 
+// "1.9.1"
+```
+
+#### 3.2 \#@运算符
+非标准，了解一下即可。
+```cpp
+#define makechar(x)  #@x
+```
+
+#### 3.2 \#\#运算符
+任何两个相继标识符之间有 `##` 运算符，那么这两个标识符（首先未被宏展开）在运行形参替换的基础上将结果进行拼接。
+
+```cpp
+#define paster( n ) printf_s( "token" #n " = %d", token##n )
+
+int main()
+{
+    int token9 = 9;
+    paster(9); //printf_s( "token9 = %d", token9 );
+}
+```
+
+### 4. 预定义宏
+预定义宏主要分为**标准预定义宏**和**MSVC、GCC、CLang、LINUX、Windows专用预定义宏**。
+
+标准中为 C++11 和之后引入的 C++ 语言和程序库的功能特性定义了一组预处理器宏。标准有意使之成为检测这些功能特性是否存在的一种简单且可移植的方式,
+[详情可以查看](https://zh.cppreference.com/w/cpp/feature_test#Attributes) 语言功能特性测试、在C++20以后支持配合__has_cpp_attribute使用。
+
+```cpp
+//使用例子，检查是否支持lambda表达式
+#if !defined(__cpp_lambdas)
+    #error not support lambda expression
+#endif
+```
+
+#### 4.1 标准预定义宏
+编译器基本都支持 ISO C99、C11、C17，具体可以查看[cppreference 预定义宏](https://zh.cppreference.com/w/c/language)。
+
+* \_\_FILE\_\_ 展开成当前文件名，作为字符串字面量，可用 #line 指令更改
+* \_\_LINE\_\_ 展开成源文件行号，整数常量，可用 #line 指令更改
+* \_\_DATE\_\_ 展开成翻译日期，形式为 "Mmm dd yyyy" 的字符串。如果月中日期数小于 10 则 "dd" 的首字符为空格。月份名如同以 std::asctime() 生成
+* \_\_TIME\_\_ 展开成翻译时间，形式为 "hh:mm:ss" 的字符串字面量
+
+**__cplusplus**, MSVC中永恒为199711L，代表所用的 C++ 标准版本，展开成以下值之一。
+  * 199711L(C++11 前)
+  * 201103L(C++11)
+  * 201402L(C++14)
+  * 201703L(C++17)
+  * 202002L(C++20)
+  * 202302L(C++23)
+
+**\_\_STDC_HOSTED\_\_** 展开成 1L，表示编译器是主机编译器，展开成 0L，表示编译器是库编译器。
+
+#### 4.2 Windows和MSVC专业预定义宏
+详情可以查看 [Microsoft 专用预定义宏](https://learn.microsoft.com/zh-cn/cpp/preprocessor/predefined-macros?view=msvc-170) 。
+
+* _WIN32 展开成 1L，表示编译器是 Windows 编译器，展开成 0L，表示编译器是 UNIX 编译器。
+* _WIN64 展开成 1L，表示编译器是 64 位 Windows 编译器，展开成 0L，表示编译器是 32 位 Windows 编译器。
+* _MSC_VER 表示MSVC的版本号。
+  * Visual C++ 2019：192x
+  * Visual C++ 2017：191x
+  * Visual C++ 2015：190x
+  * Visual C++ 2013：180x
+* _MSVC_LANG 表示当前使用的C++标准版本。
+  * 202002L  指定了 `/std:c++20` 编译器选项
+  * 201703L  指定了 `/std:c++17` 编译器选项
+  * 201402L  指定了 `/std:c++14` 编译器选项
+  * 201103L  指定了 `/std:c++11` 编译器选项
+
+#### 4.3 Linux和GCC专业预定义宏
+GCC 编译器也提供了一些预定义的宏，用于在编译过程中提供有用的信息或执行条件编译。以下是一些常见的 GCC 预定义宏：
+
+* \_\_GNUC\_\_：表示GCC主版本号。
+* \_\_GNUC_MINOR\_\_：表示GCC次版本号。
+* \_\_GNUC_PATCHLEVEL\_\_：表示 GCC 编译器的修订版本号。例如，GCC 10.2.0 中，的值为 0。
+* \_\_unix\_\_：在类 Unix 系统上编译时被定义。
+* \_\_linux\_\_：在 Linux 系统上编译时被定义。
+* \_\_APPLE\_\_：在 macOS 和 iOS 系统上编译时被定义。
+
+#### 4.4 macOS和CLang专业预定义宏
+Clang 编译器也提供了一些常用的预定义宏，用于在编译过程中提供有用的信息或执行条件编译。以下是一些常见的 Clang 预定义宏
+
+* \_\_clang\_\_：表示正在使用 Clang 编译器。
+* \_\_clang_major\_\_：表示 Clang 编译器的主版本号。
+* \_\_clang_minor\_\_：表示 Clang 编译器的次版本号。
+* \_\_clang_patchlevel\_\_：表示 Clang 编译器的修订版本号。
+
 ### 参考资料
 * [Visual Studio 2022 C/C++ 预处理器参考](https://learn.microsoft.com/zh-cn/cpp/preprocessor/c-cpp-preprocessor-reference?view=msvc-170)
 * [C/C++ 宏编程的艺术](https://bot-man-jl.github.io/articles/?post=2020/Macro-Programming-Art)
-* [cppreference 预处理器](https://zh.cppreference.com/w/cpp/preprocessor)
+* [cppreference 预处理器](https://zh.cppreference.com/w/cpp/preprocessor/replace#.E9.A2.84.E5.AE.9A.E4.B9.89.E5.AE.8F)

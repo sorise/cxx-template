@@ -58,7 +58,11 @@ message(STATUS "Download googletest binary dir: ${googletest_BINARY_DIR}")
 message(STATUS "Download benchmark binary dir: ${benchmark_BINARY_DIR}")
 message(STATUS "Download benchmark binary dir: ${benchmark_BINARY_DIR}")
 
-set(PROGRAM_NAME "main")
+set(PROGRAM_NAME MAIN)
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    add_compile_options("/Zc:preprocessor")
+endif()
 
 add_executable(${PROGRAM_NAME} main.cpp)
 
@@ -71,6 +75,7 @@ function(INCLUDE_GOOGLE_TEST_BENCHMARK target_name)
     )
 endfunction()
 
-target_link_libraries(${PROGRAM_NAME})
+
+
 
 

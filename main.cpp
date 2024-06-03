@@ -2,19 +2,11 @@
 #include <cassert>
 #include <vector>
 
-
-
-#define ABDEF 1
-#undef ABDEF
-
-#ifdef ABDEF
-    #define ABDEF_VALUE 1
-#else
-    #define ABDEF_VALUE 0
-#endif
-
+#define SDEF(sname, ...) std::vector<int> sname __VA_OPT__(= { __VA_ARGS__ })
 
 int main()
 {
-    std::cout << "ABDEF_VALUE = " << ABDEF_VALUE << std::endl;
+    SDEF(s1, 1, 2, 3);
+
+    std::cout << s1[0] << std::endl;
 }

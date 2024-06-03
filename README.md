@@ -3,4 +3,5 @@
 
 
 ### 目录
-- [宏编程基础](docs/contents/macro/cxx_macro_syntax.md)
+- [宏编程基础](docs/contents/macro/cxx_macro_syntax.md) ：介绍宏编程的基础语法，以及宏的常用内容、指令、运算符、预定义宏。
+- [宏编程应用技巧](docs/contents/macro/cxx_macro_usage.md)
