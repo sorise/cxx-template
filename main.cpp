@@ -1,5 +1,5 @@
 #include <iostream>
-
+#include <cassert>
 
 
 struct PackedStruct {
@@ -9,6 +9,5 @@ struct PackedStruct {
 
 int main()
 {
-    PackedStruct s{'c', 12};
-    std::cout << sizeof(s) << std::endl; //5
+
 }
