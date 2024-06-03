@@ -63,6 +63,12 @@ ISO C++标准宏。
 ### [2. 预处理指令](#)
 源文件中的预处理指令告知预处理器应该采取特定操作，可以实现文本替换、条件编译、插入文件、定义编译时错误消息以及将计算机特定规则应用于代码节。
 
+| 指令        |        |         |        |                 |                 | 
+|:----------|:-------|:--------|:-------|:----------------|:----------------|
+| #if       | #elif  | #else   | #ifdef | #ifndef(C++23)  | #elifdef(C++23) | 
+| #elifndef | #endif | #Pragma | #error | #warning(C++23) | #import         |
+| #define   | #undef |  #line  | ` `    | ` `             | ` `             |
+
 #### 2.1 条件指令
 预处理器支持有条件地编译源文件的某些部分。这一行为由 `#if、#else、#elif、#ifdef、#ifndef、#elifdef、#elifndef (C++23 起) 与 #endif` 指令所控制。
 
@@ -180,7 +186,13 @@ int main()
     #error "only support windows"
 #endif
 ```
-#### 
+#### 2.3 Pragma 指令与 __pragma 和 _Pragma 关键字
+由 **#pragma** 指令控制实现定义行为。指令控制编译器的实现指定行为，如 **禁用编译器警告** 或 **更改对齐要求**, **忽略任何不被识别的语用**, C++99开始支持。
+
+以 **#pragma** 开头行指定 pragma 指令。 **Microsoft 特定 __pragma 关键字** 可以在宏定义内编写 pragma 指令。
+* #pragma 语用形参
+* _Pragma ( 字符串字面量 )	
+
 
 ### 参考资料
 * [Visual Studio 2022 C/C++ 预处理器参考](https://learn.microsoft.com/zh-cn/cpp/preprocessor/c-cpp-preprocessor-reference?view=msvc-170)
