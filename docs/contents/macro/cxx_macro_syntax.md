@@ -63,11 +63,11 @@ ISO C++标准宏。
 ### [2. 预处理指令](#)
 源文件中的预处理指令告知预处理器应该采取特定操作，可以实现文本替换、条件编译、插入文件、定义编译时错误消息以及将计算机特定规则应用于代码节。
 
-| 指令        |        |         |        |                 |                 | 
-|:----------|:-------|:--------|:-------|:----------------|:----------------|
-| #if       | #elif  | #else   | #ifdef | #ifndef(C++23)  | #elifdef(C++23) | 
-| #elifndef | #endif | #Pragma | #error | #warning(C++23) | #import         |
-| #define   | #undef |  #line  | ` `    | ` `             | ` `             |
+| 预处理指令     | 最后更新时间： |2024年6月1日         |                      |                         |                 | 
+|:----------|:--------|:--------|:---------------------|:------------------------|:----------------|
+| #if       | #elif   | #else   | #ifdef               | #ifndef(C++23)          | #elifdef(C++23) | 
+| #elifndef | #endif  | #Pragma | #error               | #warning(C++23)         | #import(MSVC专用) |
+| #define   | #undef  |  #line  | import(C++20 尚未完全实现) | module(C++20 尚未完全实现) | ` `             |
 
 #### 2.1 条件指令
 预处理器支持有条件地编译源文件的某些部分。这一行为由 `#if、#else、#elif、#ifdef、#ifndef、#elifdef、#elifndef (C++23 起) 与 #endif` 指令所控制。
@@ -99,7 +99,7 @@ ISO C++标准宏。
 #endif
 ```
 
-条件表达式支持 `+ - * / % >、<、==、||、&&、()` 等运算符。
+条件表达式支持 `+ - * / % >、<、==、||、&&、() !` 等运算符。
 
 * (C++17 起) [**__has_include**](https://zh.cppreference.com/w/cpp/preprocessor/include) 表达式，检测某个头文件或源文件存在。
 * (C++20 起) [**__has_cpp_attribute**](https://zh.cppreference.com/w/cpp/feature_test#Attributes) 表达式，检测给定属性记号是否受支持和支持的版本。
@@ -186,7 +186,7 @@ int main()
     #error "only support windows"
 #endif
 ```
-#### 2.3 Pragma 指令与 __pragma 和 _Pragma 关键字
+#### 2.3 #pragma 指令
 由 **#pragma** 指令控制实现定义行为。指令控制编译器的实现指定行为，如 **禁用编译器警告** 或 **更改对齐要求**, **忽略任何不被识别的语用**, C++99开始支持。
 
 以 **#pragma** 开头行指定 pragma 指令。 **Microsoft 特定 __pragma 关键字** 可以在宏定义内编写 pragma 指令。
@@ -290,9 +290,112 @@ int main()
 报错信息为 Assertion failed: 2+2 == 5, file test.cc, line 777。
 
 #### 2.5 #define 宏定义简介
-预处理器支持文本宏替换。也支持函数式文本宏替换。
+预处理器支持文本宏替换。也支持函数式文本宏替换，如果定义跨行使用 **\** 链接，此处简单解释，之后再详细介绍。
 
+* **对象式宏**（object-like macro）以替换列表替换每次出现的被定义标识符。#define 指令的版本 (1) 准确表现如此。
+* **函数式宏**（function-like macro）以替换列表替换每次出现的被定义标识符，可选地接受一定量的实参，它们随即替换掉替换列表中出现的任何对应的形参。
+    * 额外的实参（是谓可变实参）可用 **\_\_VA\_ARGS\_\_** 标识符访问，它会被与要被替换的标识符一起提供的实参替换。
+    * 替换列表可以含有记号序列 **\_\_VA_OPT\_\_(内容(可选))** ，如果 **\_\_VA\_ARGS\_\_** 非空，那么它会被内容 ﻿替换，否则不展开成任何内容。
+
+> `__VA_OPT__` 在C++ 20 引入，许多编译器未必支持。
+  
+| 指令                       | 说明              | 可否使用 |
+|:-------------------------|:----------------|:-----|
+| #define 标识符 替换列表(可选)     | （1）             | YES  |
+| #define 标识符(形参) 替换列表     | （2）简单函数式宏。      |     YES |
+| #define 标识符(形参,...) 替换列表 | （3）有可变数量实参的函数式宏 |YES|
+| #define 标识符(...) 替换列表    | （4） 有可变数量实参的函数式宏，但无常规实参。            |YES|
+
+```cpp
+#define PROGRAM_NAME "Ponder"
+
+#define ASSERT_EQ(a, b) assert((a) == (b))
+
+#define PONDER_DI_VERSION_VALUE_GET(major, minor, patch) \
+    ((major) * 10000 + (minor) * 100 + (patch))
+
+auto version = PONDER_DI_VERSION_VALUE_GET(7,1,1);
+std::cout << "Ponder version: " << version << std::endl;
+//Ponder version: 70101
+
+#define F(...) f(0 __VA_OPT__(,) __VA_ARGS__)
+F(a, b, c) // 替换为 f(0, a, b, c)
+F()        // 替换为 f(0)
+ 
+#define G(X, ...) f(0, X __VA_OPT__(,) __VA_ARGS__)
+G(a, b, c) // 替换为 f(0, a, b, c)
+G(a, )     // 替换为 f(0, a)
+G(a)       // 替换为 f(0, a)
+ 
+#define SDEF(sname, ...) S sname __VA_OPT__(= { __VA_ARGS__ })
+SDEF(foo);       // 替换为 S foo;
+SDEF(bar, 1, 2); // 替换为 S bar = { 1, 2 };
+
+define DEBUG_PRINT(fmt, ...) \
+    fprintf(stderr, "DEBUG: " fmt __VA_OPT__(,) __VA_ARGS__)
+
+int main() {
+    int a = 5;
+    DEBUG_PRINT("Value of a is %d\n", a);
+    return 0;
+}
+```
+
+输出打印例子
+```cpp
+template<typename T, typename ...Args>
+void print_all(T t, Args ...args)
+{
+    std::cout << t << " ";
+    print_all(args...);
+}
+
+void print_all(){
+
+}
+
+#define PRINT_ALL(...) print_all(__VA_ARGS__)
+PRINT_ALL("123",1,2,3,4,5,6); //123 1 2 3 4 5 6
+```
+**忠告**：对于宏函数的参数，一定要括号括起来，不然很可能发送错误。
+```cpp
+#define MUSE_ADD_TOOLKIT_ERROE(a,b) (a - b)
+
+#define MUSE_ADD_TOOLKIT(a,b) ((a)-(b))
+
+MUSE_ADD_TOOLKIT_ERROE( 5 + 6, 78-9); // 5 + 6 - 78 - 9
+MUSE_ADD_TOOLKIT( 5 + 6, 78-9); // (11) + (69)
+```
+
+#### 2.6 #undef 取消定义
+#undef 指令取消定义标识符，即取消 #define 指令所作的标识符定义。如果标识符未关联到宏，那么忽略该指令。
+
+```cpp
+#define ABDEF 1
+#undef ABDEF
+
+#ifdef ABDEF
+    #define ABDEF_VALUE 1
+#else
+    #define ABDEF_VALUE 0
+#endif
+
+ std::cout << "ABDEF_VALUE = " << ABDEF_VALUE << std::endl; 
+//ABDEF_VALUE = 0
+```
+
+#### 2.7 #error
+#error 指令在编译时发出用户指定的错误消息，然后终止编译。
+```cpp
+#if !defined(__cplusplus)
+    #error C++ compiler required.
+#endif
+```
+
+#### 2.8 #import
+过去一直合并类型库中的信息。 类型库的内容将转换为 C++ 类，主要描述 COM 接口， MSVC专属。 还有 `#using` 都属于MSVC专属，不推荐使用。
 
 ### 参考资料
 * [Visual Studio 2022 C/C++ 预处理器参考](https://learn.microsoft.com/zh-cn/cpp/preprocessor/c-cpp-preprocessor-reference?view=msvc-170)
 * [C/C++ 宏编程的艺术](https://bot-man-jl.github.io/articles/?post=2020/Macro-Programming-Art)
+* [cppreference 预处理器](https://zh.cppreference.com/w/cpp/preprocessor)
