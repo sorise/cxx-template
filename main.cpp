@@ -1,26 +1,14 @@
 #include <iostream>
 
-#ifdef _WIN32
-    #include <windows.h>
-#else
-    #error "only support windows"
-#endif
 
 
-#if defined(_WIN32)
-    #include <windows.h>
-#else
-    #error "only support windows"
-#endif
-
-
-class A{
-    [[nodiscard("show result")]] int test(){
-        return 1;
-    }
+struct PackedStruct {
+    char a;
+    int b;
 };
 
 int main()
 {
-
+    PackedStruct s{'c', 12};
+    std::cout << sizeof(s) << std::endl; //5
 }

@@ -18,6 +18,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
         add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
         add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
     endif ()
+    set(CMAKE_GENERATOR_PLATFORM x64)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 
 else()

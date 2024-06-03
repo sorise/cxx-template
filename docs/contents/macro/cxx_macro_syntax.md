@@ -193,6 +193,86 @@ int main()
 * #pragma 语用形参
 * _Pragma ( 字符串字面量 )	
 
+| 使用方式                             | 说明                                             | 是否推荐使用                |
+|:---------------------------------|:-----------------------------------------------|:----------------------|
+| #pragma once                     | 包含守卫，防止引入重复的头文件。                               | 非C++标准，不推荐使用。         |
+| pragma pack(show)                | 显示当前内存对齐的字节数，编辑器默认8字节对齐                        | 并非所有编译器都支持            |
+| #pragma pack                     | 用于控制结构体、联合和类的成员的内存对齐方式。                        | 辩证使用                  |
+| #pragma region、#pragma endregion | 这些指令用于代码折叠，方便在 IDE 中管理代码块。                     | 它们主要用于 Visual Studio。 |
+| #pragma pack(n)                  | 设置编辑器按照n个字节对齐，n可以取值1,2,4,8,16，n有上限值，超过编译器支持无效。 | YES                   |
+| #pragma pack(push)               | 将当前的对齐字节数压入栈顶，不改变对齐字节数 (栈顶里面的值为字节对齐大小)         | YES                   |
+| #pragma pack(pop)                | 弹出栈顶对齐字节数，不改变对齐字节数                             | YES                   |
+| #pragma pack(push,n)             | 将当前的对齐字节数压入栈顶，并按照n字节对齐                         | YES                   |
+| #pragma pack(pop,n)                                  | 弹出栈顶并直接丢弃，按照n字节对齐                              | YES                   |
+|#pragma message|用于在编译时向开发人员发送自定义消息，通常用于调试或输出构建信息。| MSVC特定扩展，不推荐使用        |
+|#pragma warning|控制编译器警告的行为|                       MSVC特定扩展，不推荐使用|
+
+
+**#pragma once** 用于防止头文件被多次包含。这是一种比传统的包含守卫更简洁的做法，**不推荐使用**。
+其不是标准的 C++ 特性，而是编译器特定的扩展。虽然现代大多数编译器（如 GCC、Clang、MSVC 等）都支持它，但并非所有编译器都支持。
+```cpp
+//传统方法
+#ifndef CXX_TEMPLATE_TOOLKITS_HPP
+#define CXX_TEMPLATE_TOOLKITS_HPP
+
+class toolkits {
+    //...
+};
+
+#endif //CXX_TEMPLATE_TOOLKITS_HPP
+```
+使用 #pragma once
+```cpp
+#pragma once
+
+class toolkits {
+    //...
+};
+```
+
+**#pragma pack** 用于控制结构体、联合和类的成员的内存对齐方式,可以指定类的对齐，然而它不能使类过对齐。
+
+如下所示，使用 #pragma pack(push, 1) 可以将当前对齐方式压栈并设置新的对齐方式为 1 字节。
+如果设置了一个编译器不支持的对齐方式(如n=32)，编译器可能会忽略该设置，并使用默认的对齐方式。
+```cpp
+#pragma pack(push, 1) // 将当前对齐方式压栈并设置新的对齐方式为 1 字节
+struct PackedStruct {
+    char c;
+    int i;
+};
+#pragma pack(pop) // 恢复之前的对齐方式
+
+/*
+ | 1 | 2  3  4  5|  字节
+ | c |     i     | 
+ * */
+
+PackedStruct s{'c', 12};
+std::cout << sizeof(s) << std::endl; //5
+```
+设置 **n = 2** 时，结构体大小为 6 字节。
+```cpp
+#pragma pack(push, 2) // 将当前对齐方式压栈并设置新的对齐方式为 2 字节
+struct PackedStruct {
+    char c;
+    int i;
+};
+#pragma pack(pop) // 恢复之前的对齐方式
+
+/*
+ | 1  2 |  3  4  5  6 |  字节
+ |   c  |     i       | 
+ * */
+
+PackedStruct s{'c', 12};
+std::cout << sizeof(s) << std::endl; //6
+```
+
+* PackedStruct1 使用默认对齐方式，通常 int 会对齐到 4 字节边界。结构体总大小为8.
+* PackedStruct1 使用 1 字节对齐方式，因此结构体大小为 5 字节（1 字节用于 char a，紧接着 4 字节用于 int b，无填充）。
+* PackedStruct2 使用 2 字节对齐方式，因此结构体大小为 6 字节（1 字节用于 char a，1 字节填充，4 字节用于 int b）。
+
+
 
 ### 参考资料
 * [Visual Studio 2022 C/C++ 预处理器参考](https://learn.microsoft.com/zh-cn/cpp/preprocessor/c-cpp-preprocessor-reference?view=msvc-170)
