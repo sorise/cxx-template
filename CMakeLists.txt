@@ -60,9 +60,13 @@ message(STATUS "Download benchmark binary dir: ${benchmark_BINARY_DIR}")
 
 set(PROGRAM_NAME MAIN)
 
+include_directories(include)
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_compile_options("/Zc:preprocessor")
 endif()
+
+
 
 add_executable(${PROGRAM_NAME} main.cpp)
 
