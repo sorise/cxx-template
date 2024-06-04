@@ -268,8 +268,13 @@ auto len9 = PP_IS_EMPTY(, , , );    // -> 0
 #define PP_COMMA_IF(N) PP_CONCAT(PP_IF_, N)(PP_COMMA(), PP_EMPTY())
 #define PP_VA_OPT_COMMA(...) PP_COMMA_IF(PP_NOT(PP_IS_EMPTY(__VA_ARGS__)))
 
+#define PP_ARGC_COUNT_NOARGS 0
 #define PP_ARGC_COUNT(...) \
-    PP_GET_N(16, __VA_ARGS__ PP_VA_OPT_COMMA(__VA_ARGS__) 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+    PP_IF(PP_IS_EMPTY(__VA_ARGS__), \
+        PP_ARGC_COUNT_NOARGS,       \
+        PP_GET_N(16, __VA_ARGS__ PP_VA_OPT_COMMA(__VA_ARGS__) \
+        16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0))
+
 
 auto lenv1 = PP_ARGC_COUNT();          // 存在BUG
 /*

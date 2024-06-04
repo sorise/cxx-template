@@ -10,7 +10,7 @@ int main()
 
 
 
-    int lenv1 = PP_CONCAT(PP_IF_, PP_BOOL(1))(1 , 2);          // -> 0
+    int lenv1 = PP_ARGC_COUNT();          // -> 0
     auto lenv2 = PP_ARGC_COUNT(foo);       // -> 1
     auto lenv3 = PP_ARGC_COUNT(foo());     // -> 1
     auto lenv4 = PP_ARGC_COUNT(());        // -> 1
@@ -21,6 +21,6 @@ int main()
     auto lenv9 = PP_ARGC_COUNT(foo, bar);  // -> 2
     auto lenv10 = PP_ARGC_COUNT(, , , );    // -> 4
 
-    std::cout << lenv1 << std::endl;
+    std::cout << "what: " << lenv1 << std::endl;
 
 }
