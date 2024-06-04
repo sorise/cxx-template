@@ -2,11 +2,17 @@
 #include <cassert>
 #include <vector>
 
-#define SDEF(sname, ...) std::vector<int> sname __VA_OPT__(= { __VA_ARGS__ })
+
+#define MACRO_COMMA() ,
+#define MACRO_LPAREN() (
+#define MACRO_RPAREN() )
+#define MACRO_EMPTY()
+
+
+
 
 int main()
 {
-    SDEF(s1, 1, 2, 3);
 
-    std::cout << s1[0] << std::endl;
+
 }
