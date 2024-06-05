@@ -227,7 +227,8 @@ PP_GET_TUPLE(1, (foo, bar))  // -> bar
 借助 PP_GET_N()，我们可以检查 **变长参数是否为空** 。
 
 ```cpp
-#define PP_HAS_COMMA(...) PP_GET_N_16(__VA_ARGS__,1,1,1,1,1, 1,1,1,1,1, 1,1,1,1,1, 0, 0 )
+#define PP_HAS_COMMA(...) PP_GET_N_16(__VA_ARGS__,  1,1,1,1,1,  1,1,1,1,1,  1,1,1,1,1,  0,0)
+
 #define PP_COMMA_V(...) ,
 #define PP_IS_EMPTY(...)                                      \
   PP_AND(PP_AND(PP_NOT(PP_HAS_COMMA(__VA_ARGS__)),            \
@@ -247,7 +248,6 @@ auto len7 = PP_IS_EMPTY(, );        // -> 0
 auto len8 = PP_IS_EMPTY(foo, bar);  // -> 0
 auto len9 = PP_IS_EMPTY(, , , );    // -> 0
 ```
-
 长度计算
 ```cpp
 #define PP_COMMA() ,
@@ -262,6 +262,7 @@ auto len9 = PP_IS_EMPTY(, , , );    // -> 0
 
 #define PP_IF_1(THEN, ELSE) THEN
 #define PP_IF_0(THEN, ELSE) ELSE
+
 #define PP_IF(PRED, THEN, ELSE) \
     PP_CONCAT(PP_IF_, PP_BOOL(PRED))(THEN, ELSE)
 
@@ -269,6 +270,7 @@ auto len9 = PP_IS_EMPTY(, , , );    // -> 0
 #define PP_VA_OPT_COMMA(...) PP_COMMA_IF(PP_NOT(PP_IS_EMPTY(__VA_ARGS__)))
 
 #define PP_ARGC_COUNT_NOARGS 0
+
 #define PP_ARGC_COUNT(...) \
     PP_IF(PP_IS_EMPTY(__VA_ARGS__), \
         PP_ARGC_COUNT_NOARGS,       \
@@ -282,8 +284,7 @@ auto lenv1 = PP_ARGC_COUNT();          // 存在BUG
   Too many arguments provided to function-like macro invocation macro 
  'PP_CONCAT_IMPL' defined here
   但是可以运行
- * */
-
+*/
 auto lenv2 = PP_ARGC_COUNT(foo);       // -> 1
 auto lenv3 = PP_ARGC_COUNT(foo());     // -> 1
 auto lenv4 = PP_ARGC_COUNT(());        // -> 1
@@ -298,6 +299,10 @@ auto lenv10 = PP_ARGC_COUNT(, , , );    // -> 4
 ### [4. 递归重入](#)
 因为 **自参照宏 (self referential macro)** 不会被展开 —— 在展开一个宏时，如果遇到 **当前宏** 的符号，则不会继续展开，
 避免 **无限展开 (infinite expansion)** —— 所以宏 不支持 **递归/重入**。
+
+#### 4.1 递归
+
+
 
 
 
