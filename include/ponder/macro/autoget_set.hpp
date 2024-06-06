@@ -9,7 +9,7 @@
 #ifndef CXX_TEMPLATE_AUTOGET_SET_HPP
 #define CXX_TEMPLATE_AUTOGET_SET_HPP
 
-#define CLASS_AUTO_ATTR(NAME)             \
+#define AUTO_GET_SET(NAME)             \
     auto get_##NAME() const {                   \
         return _##NAME;                         \
     }                                           \
@@ -20,7 +20,7 @@
 
 class student{
 public:
-    MACRO_FOR_EACH(CLASS_AUTO_ATTR, age, name);
+    MACRO_FOR_EACH(AUTO_GET_SET, age, name);
 private:
     int _age;
     std::string _name;

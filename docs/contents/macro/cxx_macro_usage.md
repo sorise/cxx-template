@@ -340,7 +340,7 @@ MACRO_FOR_EACH(D0_EACH, 1,2,3,4,5,6,7,8,9,10);
 #### 3.4 宏遍历与元模块结合
 可以实现类似于反射的效果。
 ```cpp
-#define CLASS_AUTO_ATTR(NAME)                   \
+#define AUTO_GET_SET(NAME)                   \
     auto get_##NAME() const {                   \
         return _##NAME;                         \
     }                                           \
@@ -351,7 +351,7 @@ MACRO_FOR_EACH(D0_EACH, 1,2,3,4,5,6,7,8,9,10);
 
 class student{
 public:
-    MACRO_FOR_EACH(CLASS_AUTO_ATTR, age, name);
+    MACRO_FOR_EACH(AUTO_GET_SET, age, name);
 private:
     int _age;
     std::string _name;
