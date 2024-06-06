@@ -29,8 +29,6 @@
 
 #define PP_GET_N(N, ...) PP_CONCAT(PP_GET_N_, N)(__VA_ARGS__)
 
-
-
 #define MACRO_IF(PRED, THEN, ELSE) PP_CONCAT(MACRO_IF_, PRED)(THEN, ELSE)
 
 #define MACRO_IF_true(THEN, ELSE) THEN
@@ -57,7 +55,6 @@
   PP_AND(PP_NOT(PP_HAS_COMMA(PP_COMMA_V __VA_ARGS__)),   \
                 PP_HAS_COMMA(PP_COMMA_V __VA_ARGS__())))
 
-
 #define PP_COMMA() ,
 #define PP_LPAREN() (
 #define PP_RPAREN() )
@@ -80,8 +77,28 @@
 #define MM_COMMA_IF
 
 #define PP_ARGC_COUNT_NOARGS 0
-#define PP_ARGC_COUNT(...) PP_IF(PP_IS_EMPTY(__VA_ARGS__), PP_ARGC_COUNT_NOARGS, PP_GET_N(16, __VA_ARGS__ PP_VA_OPT_COMMA(__VA_ARGS__) 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0))
+#define PP_ARGC_COUNT(...) \
+    PP_IF(PP_IS_EMPTY(__VA_ARGS__), PP_ARGC_COUNT_NOARGS, PP_GET_N(16, __VA_ARGS__ PP_VA_OPT_COMMA(__VA_ARGS__) 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0))
 
 
+#define MACRO_FOR_EACH_1(DO, x) DO(x);
+#define MACRO_FOR_EACH_2(DO, x, ...) DO(x); MACRO_FOR_EACH_1(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_3(DO, x, ...) DO(x); MACRO_FOR_EACH_2(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_4(DO, x, ...) DO(x); MACRO_FOR_EACH_3(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_5(DO, x, ...) DO(x); MACRO_FOR_EACH_4(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_6(DO, x, ...) DO(x); MACRO_FOR_EACH_5(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_7(DO, x, ...) DO(x); MACRO_FOR_EACH_6(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_8(DO, x, ...) DO(x); MACRO_FOR_EACH_7(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_9(DO, x, ...) DO(x); MACRO_FOR_EACH_8(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_10(DO, x, ...) DO(x); MACRO_FOR_EACH_9(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_11(DO, x, ...) DO(x); MACRO_FOR_EACH_10(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_12(DO, x, ...) DO(x); MACRO_FOR_EACH_11(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_13(DO, x, ...) DO(x); MACRO_FOR_EACH_12(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_14(DO, x, ...) DO(x); MACRO_FOR_EACH_13(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_15(DO, x, ...) DO(x); MACRO_FOR_EACH_14(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_16(DO, x, ...) DO(x); MACRO_FOR_EACH_15(DO, __VA_ARGS__)
+
+#define MACRO_FOR_EACH(DD, ...) \
+    PP_CONCAT(MACRO_FOR_EACH_, PP_ARGC_COUNT(__VA_ARGS__))(DD, __VA_ARGS__)
 
 #endif

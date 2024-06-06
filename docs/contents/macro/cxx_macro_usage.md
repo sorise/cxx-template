@@ -295,11 +295,115 @@ auto lenv9 = PP_ARGC_COUNT(foo, bar);  // -> 2
 auto lenv10 = PP_ARGC_COUNT(, , , );    // -> 4
 ```
 
+#### 3.3 遍历访问
+借助 **PP_ARGC_COUNT** 和 **PP_CONCAT** 可以完成变长参数的遍历访问，访问体就是 **D0_EACH** 。
+```cpp
+#define D0_EACH(arg) std::cout << arg << std::endl
+
+#define MACRO_FOR_EACH_1(DO, x) DO(x);
+#define MACRO_FOR_EACH_2(DO, x, ...) DO(x); MACRO_FOR_EACH_1(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_3(DO, x, ...) DO(x); MACRO_FOR_EACH_2(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_4(DO, x, ...) DO(x); MACRO_FOR_EACH_3(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_5(DO, x, ...) DO(x); MACRO_FOR_EACH_4(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_6(DO, x, ...) DO(x); MACRO_FOR_EACH_5(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_7(DO, x, ...) DO(x); MACRO_FOR_EACH_6(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_8(DO, x, ...) DO(x); MACRO_FOR_EACH_7(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_9(DO, x, ...) DO(x); MACRO_FOR_EACH_8(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_10(DO, x, ...) DO(x); MACRO_FOR_EACH_9(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_11(DO, x, ...) DO(x); MACRO_FOR_EACH_10(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_12(DO, x, ...) DO(x); MACRO_FOR_EACH_11(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_13(DO, x, ...) DO(x); MACRO_FOR_EACH_12(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_14(DO, x, ...) DO(x); MACRO_FOR_EACH_13(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_15(DO, x, ...) DO(x); MACRO_FOR_EACH_14(DO, __VA_ARGS__)
+#define MACRO_FOR_EACH_16(DO, x, ...) DO(x); MACRO_FOR_EACH_15(DO, __VA_ARGS__)
+
+#define MACRO_FOR_EACH(DD, ...) \
+    PP_CONCAT(MACRO_FOR_EACH_, PP_ARGC_COUNT(__VA_ARGS__))(DD, __VA_ARGS__)
+
+
+MACRO_FOR_EACH(D0_EACH, 1, 2, 3);
+/*
+std::cout << 1 << std::endl;
+std::cout << 2 << std::endl;
+std::cout << 3 << std::endl;
+ * */
+MACRO_FOR_EACH(D0_EACH, "ASD", "2", 3,5);
+/*
+std::cout << "ASD" << std::endl;
+std::cout << "2" << std::endl;
+std::cout << 3 << std::endl;
+std::cout << 5 << std::endl;
+ * */
+MACRO_FOR_EACH(D0_EACH, 1,2,3,4,5,6,7,8,9,10);
+```
+
+#### 3.4 宏遍历与元模块结合
+可以实现类似于反射的效果。
+```cpp
+#define CLASS_AUTO_ATTR(NAME)                   \
+    auto get_##NAME() const {                   \
+        return _##NAME;                         \
+    }                                           \
+    template<typename TYPE>                     \
+    void set_##NAME(const TYPE& NAME) {         \
+        _##NAME = NAME;                         \
+    }                                           \
+
+class student{
+public:
+    MACRO_FOR_EACH(CLASS_AUTO_ATTR, age, name);
+private:
+    int _age;
+    std::string _name;
+};
+
+//展开
+/*
+class student{
+public:
+    auto get_age() const { return _age; }
+    template<typename TYPE>
+    void set_age(const TYPE &age) { _age = age; };
+    auto get_name() const { return _name; }
+    template<typename TYPE>
+    void set_name(const TYPE &name) { _name = name; };
+private:
+    int _age;
+    std::string _name;
+};
+ * */
+```
+
 ### [4. 递归重入](#)
 因为 **自参照宏 (self referential macro)** 不会被展开 —— 在展开一个宏时，如果遇到 **当前宏** 的符号，则不会继续展开，
 避免 **无限展开 (infinite expansion)** —— 所以宏 不支持 **递归/重入**。
+
+宏展开顺序大致可以归结为：
+* 第一步：首先用实参代替形参，将实参代入宏文本中
+* 第二步：如果实参也是宏，则展开实参
+* 第三步：最后继续处理宏替换后的宏文本，如果仍包含宏，则继续展开
+> 注意：如果在第二步，实参代入宏文本后，实参之前或之后遇到#或##，实参不再展开
+
+```cpp
+#define cat(a,b) a ## b
+
+//宏调用：cat(cat(1, 2), 3) 的展开顺序为：
+//cat(cat(1, 2), 3) -->cat(1, 2) ## 3  -->cat(1, 2)3
+//cat(1,2)仍是宏，但后面是##， (cat(1,2) ## 3)不再展开，结果为：cat(1, 2)3
+```
+
+```cpp
+#define  cat(a,b)   a ## b
+#define  xcat(x, y)   cat(x, y)
+
+//宏调用 xcat(xcat(1, 2), 3) 的展开顺序为：
+// xcat(xcat(1,2), 3) -->cat(xcat(1, 2), 3) -->cat(cat(1, 2), 3) 
+// -->cat(1 ## 2, 3) --> 1 ##2 ## 3 -->123
+```
+
 
 
 
 ### 参考资料
 - [C/C++ 宏编程的艺术](https://bot-man-jl.github.io/articles/?post=2020/Macro-Programming-Art)
+- [boost::preprocessor](https://github.com/boostorg/preprocessor/tree/develop) : Boost.Preprocessor 是 Boost 库的一部分，它为 C++ 提供了一组预处理宏，以增强预处理阶段的能力。这些宏可以用于生成代码、简化复杂的宏、处理变长参数列表等。
