@@ -5,6 +5,7 @@
 #include "ponder/macro/autoget_set.hpp"
 
 
+
 int main()
 {
     student kit;

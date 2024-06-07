@@ -506,6 +506,25 @@ int main()
 #endif
 ```
 
+使用下面预定义宏可以判断编译器类型、编译器版本、编译器特性、操作系统等。
+```cpp
+#ifdef _WIN32
+    #include <Windows.h>
+#endif
+
+#if defined(__GNUC__)
+    #if (__cplusplus < DI_CXX_VERSION_LIMIT) || (__GNUC__ < 9) || (__GNUC_MINOR__ < 1)
+        #error "ponder::di requires C++20 support GCC-9.1+"
+    #endif
+#elif defined(_MSC_VER)
+    #if (_MSC_VER < 1900 || _MSVC_LANG < DI_CXX_VERSION_LIMIT)
+        #error "ponder::di requires C++20 support MSVC-2017+"
+    #endif
+#elif defined(__CLANG__)
+    #error "ponder::di not support clang."
+#endif
+```
+
 #### 4.1 标准预定义宏
 编译器基本都支持 ISO C99、C11、C17，具体可以查看[cppreference 预定义宏](https://zh.cppreference.com/w/c/language)。
 
