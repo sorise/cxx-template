@@ -9,21 +9,14 @@
 
 int main()
 {
-    std::vector<int> vec{1, 2, 3, 4, 5};
-    int& ref = get_ref_array<3>(vec);
-    ref = 10;
+    auto v = ADD(10.15,95);
 
-    assert(vec[3] == 10);
+    std::string S1("ss1s");
+    std::string S2("ss1s");
+    Job _j1 {"123" ,10,  100};
+    Job _j2 {"123" ,10,  100};
+    auto v1 = CLASS_ADD( S1, S2);
 
 
-    std::array<int, 5> arr{1, 2, 3, 4, 5};
-    int& ref2 = get_ref_array<3>(arr);
-    ref2 = 12;
-    assert(arr[3] == 12);
-
-    int arr2[] = {1, 2, 3, 4, 5};
-
-    int& ref3 = get_ref_array<3>(arr2);
-    ref3 = 13;
-    assert(arr2[3] == 13);
+    std::cout << std::is_class_v<std::string> << std::endl;
 }

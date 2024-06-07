@@ -36,5 +36,62 @@ template<size_t _IDX, typename _Ele_Ty>
     return collection[_IDX];
 }
 
+struct Job
+{
+    char name[40];
+    double salary;
+    int floor;
+};
+
+template<typename T>
+void swap(T& x, T& y) {
+    auto temp = x;
+    x = y;
+    y = temp;
+};
+
+template<typename T>
+void swap(T x[], T y[], int size) {
+    T temp;
+    for (int i = 0; i < size; i++)
+    {
+        temp = x[i];
+        x[i] = y[i];
+        y[i] = temp;
+    }
+}
+
+void swap(int& x, int& y);
+void swap(double & x, double& y);
+
+template <typename T,typename U,
+    std::enable_if_t<std::is_arithmetic_v<T>, int> = 0,
+    std::enable_if_t<std::is_arithmetic_v<U>, int> = 0
+>
+auto ADD(T tv1, U tv2) -> decltype(tv1 + tv2) {
+    return tv1 + tv2;
+}
+
+// 检查类型 T 是否支持 operator+
+template <typename T>
+auto has_plus_operator(int) -> decltype(std::declval<T>() + std::declval<T>(), std::true_type{}) {
+    return std::true_type{};
+}
+
+template <typename T>
+std::false_type has_plus_operator(...) {
+    return std::false_type{};
+}
+
+template <typename T>
+constexpr bool has_plus_operator_v = decltype(has_plus_operator<T>(0))::value;
+
+template <typename T,typename U>
+requires has_plus_operator_v<T> && has_plus_operator_v<U> && std::is_class_v<T> && std::is_class_v<U>)
+auto CLASS_ADD(T tv1, U tv2) -> decltype(tv1 + tv2)
+{
+    return tv1 + tv2;
+}
+
 
 #endif //CXX_TEMPLATE_FUNC_HPP
