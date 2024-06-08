@@ -87,7 +87,7 @@ template <typename T>
 constexpr bool has_plus_operator_v = decltype(has_plus_operator<T>(0))::value;
 
 template <typename T,typename U>
-requires has_plus_operator_v<T> && has_plus_operator_v<U> && std::is_class_v<T> && std::is_class_v<U>)
+requires has_plus_operator_v<T> && has_plus_operator_v<U> && std::is_class_v<T> && std::is_class_v<U>
 auto CLASS_ADD(T tv1, U tv2) -> decltype(tv1 + tv2)
 {
     return tv1 + tv2;
@@ -108,6 +108,10 @@ struct refWrapper {
     }
 };
 
+template<typename Ref_Type, Ref_Type& ptr>
+void set_ref(const Ref_Type& value) {
+    ptr = value;
+}
 
 
 #endif //CXX_TEMPLATE_FUNC_HPP
