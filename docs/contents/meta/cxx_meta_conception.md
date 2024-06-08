@@ -204,11 +204,12 @@ assert(arr2[3] == 13);
 ```
 **C++标准规定了非类型模板参数可以是以下几类**：
 * 包括整型、枚举类型以及char类型。例如：`template<int N, char C>`
-* 指针或引用。例如：`template<int* ptr>、template<int& ptr>`
+* 指针或引用。例如：`template<int* ptr>、template<int& ptr>` ，**但是指针和引用执行的或者引用的必须是全局变量、静态数据成员**。
 * 指向成员的指针。例如：`template<int Job::*ptr>`
 * `std::integral_constant` 包装特定类型的静态常量。它是 C++ 类型特征的基类。
 * `constexpr` 对象在编译时具有常量值。
 ```cpp
+//注意 ptr指向的地址必须为全局变量，不能为局部变量。
 template<int* ptr>
 struct PointerWrapper {
     void set(int value) {
@@ -216,6 +217,7 @@ struct PointerWrapper {
     }
 };
 
+//注意 ptr指向的引用必须为全局变量，不能为局部变量。
 template<int& ptr>
 struct refWrapper {
     void set(int value) {
@@ -245,6 +247,29 @@ template<>
 struct Factorial<0> {
     static constexpr int value = 1;
 };
+```
+**指针和引用实例化例子**
+
+```cpp
+int i = 10;
+
+class A {
+public:
+    static int count;
+    A() = default;
+    A(int a, int b) : a(a), b(b) {}
+private:
+    int a;
+    int b;
+};
+
+int A::count = 0;
+
+int main()
+{
+    PointerWrapper<&i> ref_wrapper;
+    PointerWrapper<&A::count> ref_upper;
+}
 ```
 
 #### 3.3 函数模板实例化
@@ -407,6 +432,27 @@ auto CLASS_ADD(T tv1, U tv2) -> decltype(tv1 + tv2)
     return tv1 + tv2;
 }
 ```
+
+#### [3.6 默认参数](#)
+函数模板可以提供默认的模板参数, 如下所示，_Container 默认为 deque<_Ty>，你也可以指定为 vector<_Ty>。
+
+```cpp
+_EXPORT_STD template <class _Ty, class _Container = std::deque<_Ty>>
+std::queue<_Ty, _Container> create_queue(){
+    //todo    
+}
+
+create_queue<std::string>(); //create_queue<std::string, std::deque<std::string>>
+create_queue<double, std::vector<double>>();
+
+template<typename Ref_Type, typename Ref_Type& ptr, typename Ref_Type default_value = 0>
+void set_ref(const Ref_Type& value) {
+    ptr = value;
+}
+
+```
+
+
 
 ### [4. decltype](#)
 decltype 是 C++11 引入的一个关键字，用于获取表达式的类型。

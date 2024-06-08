@@ -94,24 +94,10 @@ auto CLASS_ADD(T tv1, U tv2) -> decltype(tv1 + tv2)
 }
 
 
-template<int* ptr>
-struct PointerWrapper {
-    void set(int value) {
-        *ptr = value;
-    }
-};
 
-template<int& ptr>
-struct refWrapper {
-    void set(int value) {
-        ptr = value;
-    }
-};
 
-template<typename Ref_Type, Ref_Type& ptr>
-void set_ref(const Ref_Type& value) {
-    ptr = value;
-}
+
+
 
 
 #endif //CXX_TEMPLATE_FUNC_HPP
