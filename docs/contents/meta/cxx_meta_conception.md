@@ -144,9 +144,13 @@ std::unique_ptr<int[]> another = std::make_unique<int>(10);
 ```
 
 #### 3.2 使用非类型参数作为模板参数
+在C++中，模板不仅可以接受类型参数（如typename或class），还可以接受非类型参数。这些非类型参数用于指定值而不是
+类型，可以在模板实例化时传递常量值。
+
 如下是一个模板函数，通过模板参数索引获取数组元素，并且使用模板函数重载支持数组、vector、std::array，由此也可以看到
 模板也是支持重载的。
 ```cpp
+//_IDX 索引、_Ele_Ty 元素类型
 template<size_t _IDX, typename _Ele_Ty>
 [[nodiscard]] constexpr _Ele_Ty& get_ref_array(_Ele_Ty* collection){
     return collection[_IDX];
@@ -187,6 +191,50 @@ int arr2[] = {1, 2, 3, 4, 5};
 int& ref3 = get_ref_array<3>(arr2);
 ref3 = 13;
 assert(arr2[3] == 13);
+```
+**C++标准规定了非类型模板参数可以是以下几类**：
+* 包括整型、枚举类型以及char类型。例如：`template<int N, char C>`
+* 指针或引用。例如：`template<int* ptr>、template<int& ptr>`
+* 指向成员的指针。例如：`template<int Job::*ptr>`
+* `std::integral_constant` 包装特定类型的静态常量。它是 C++ 类型特征的基类。
+* `constexpr` 对象在编译时具有常量值。
+```cpp
+template<int* ptr>
+struct PointerWrapper {
+    void set(int value) {
+        *ptr = value;
+    }
+};
+
+template<int& ptr>
+struct refWrapper {
+    void set(int value) {
+        ptr = value;
+    }
+};
+
+struct MyClass {
+    int value;
+};
+
+template<int MyClass::* memberPtr>
+struct MemberPointerWrapper {
+    void set(MyClass& obj, int value) {
+        obj.*memberPtr = value;
+    }
+};
+
+MemberPointerWrapper<&MyClass::value> wrapper;
+
+template<int N>
+struct Factorial {
+    static constexpr int value = N * Factorial<N - 1>::value;
+};
+
+template<>
+struct Factorial<0> {
+    static constexpr int value = 1;
+};
 ```
 
 #### 3.3 函数模板实例化
@@ -350,4 +398,112 @@ auto CLASS_ADD(T tv1, U tv2) -> decltype(tv1 + tv2)
 }
 ```
 
+### [4. decltype](#)
+decltype 是 C++11 引入的一个关键字，用于获取表达式的类型。
+decltype 可以用于类型后置语法、获取函数参数类型、获取变量、函数返回值、数组元素、指针指向的类型等。
+> 编译时类型推导，除了我们说过的auto关键字，还有本文的decltype
 
+decltype与auto关键字一样，**用于进行编译时类型推导**，不过它与auto还是有一些区别的。
+
+decltype的类型推导并不是像auto一样是从变量声明的初始化表达式获得变量的类型，而是**总是以一个普通表达式作为参数**，返回该表达式的类型,而且decltype并不会对表达式进行求值。
+
+
+```cpp
+decltype ( 实体 )	//(C++11 起)
+decltype ( 表达式 )	//(C++11 起)
+```
+
+如果实参是其他类型为 T 的任何表达式，且
+* 如果 表达式 的值类别是亡值，将会 decltype 产生 T&&；
+* 如果 表达式 的值类别是左值，将会 decltype 产生 T&；
+* 如果 表达式 的值类别是纯右值，将会 decltype 产生 T。
+
+```cpp
+template<typename T1, typename T2>
+?type? Anonymous(T1 x, T2 y){
+    auto xpt = x + y;
+    return xpt;
+}
+```
+
+c++ 11 提供了decltype来解决这个问题 decltype被称作类型说明符，它的作用是选择并返回操作数的数据类型。
+
+
+工作原理 decltype 并不会实际计算表达式的值，编译器分析表达式并得到它的类型。
+
+#### [4.1 decltype + 变量](#)
+decltype(var)完美保留了变量的类型。
+
+1. decltype : 获取表达式的类型。在编译时推导出一个表达式的类型，并且**不会计算表达式的值** 。
+
+```cpp
+int age = 25;
+const float score = 25;
+const float & reference = score;
+
+decltype(age) y; //将y 设置位 x的类型 即  int
+decltype(score) t1; // const float 类型
+decltype(score) t2; // const float & 类型
+
+int scroes[] = {56,75,48,58,55};
+
+decltype(scroes) numbers; //int 数组 类型 
+
+std::cout <<  sizeof(numbers) << std::endl; //20
+```
+2. **两层括号变引用**
+```cpp
+int x = 5;
+decltype ((x)) t = x; // int &
+```
+3. **重点:** **对指针的解引用会返回引用类型**
+```cpp
+const int val{15};
+const int * const pt = &val; //指向常量的指针常量
+decltype(*pt) dcl_p; //const int & 类型 这里会报错 因为引用必须初始化！
+```
+
+#### [4.2 decltype + 表达式](#)
+当使用decltype(expr)的形式时，decltype会返回表达式结果对应的类型。
+
+```cpp
+int x = 0;
+decltype(x) y = 1; 			// y ->  int
+decltype(x+y) z = x + y; 		// z - >  int	
+```
+
+#### [4.3 decltype + 函数返回值](#)
+C++中通过函数的返回值和形参列表，定义了一种名为函数类型的东西。它的作用主要是为了定义函数指针。
+
+```cpp
+int int_func();
+int x = 0;
+decltype(int_func()) a = 0; 					//a -> int
+int& int_func_l();					
+decltype(int_func_l()) b = x;					// b -> int&
+int&& int_func_rr();
+decltype(int_func_rr()) c = 0;					// c -> int&&
+```
+
+#### [4.4 作用于函数结果](#)
+这个方法 使用auto
+```cpp
+template<typename T1, typename T2>
+auto Anonymous(T1 x, T2 y){
+    decltype(x + y) xpt = x + y;
+    return xpt;
+}
+std::cout <<  Anonymous<float, int>(35.85, 10) << std::endl; //45.85
+```
+
+#### [4.5 decltype + 函数](#)
+**decltype作用于函数的时候返回的是函数类型，而不是函数指针。** 如果你需要的函数指针而不是函数类型，你需要显示的加上 `*` 指示结果为指针！
+
+```cpp
+int add(int a, int b) {
+	return a + b;
+}
+
+decltype(add) Sum; //Sum的类型是函数 int(int,int)
+decltype(add) *SumPtr; //Sum的类型是 函数指针 int(*)(int,int)
+```
