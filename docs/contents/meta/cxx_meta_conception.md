@@ -445,14 +445,22 @@ std::queue<_Ty, _Container> create_queue(){
 create_queue<std::string>(); //create_queue<std::string, std::deque<std::string>>
 create_queue<double, std::vector<double>>();
 
+
+int shit = 10;
+
 template<typename Ref_Type, typename Ref_Type& ptr, typename Ref_Type default_value = 0>
 void set_ref(const Ref_Type& value) {
     ptr = value;
 }
 
+template<typename Ref_Type, typename Ref_Type& ptr, typename Ref_Type default_value = 0>
+void set_ref() {
+    ptr = default_value;
+}
+set_ref<int, shit>();
+
+std::cout << shit << std::endl; // 0
 ```
-
-
 
 ### [4. decltype](#)
 decltype 是 C++11 引入的一个关键字，用于获取表达式的类型。

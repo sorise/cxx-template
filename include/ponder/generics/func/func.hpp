@@ -93,11 +93,13 @@ auto CLASS_ADD(T tv1, U tv2) -> decltype(tv1 + tv2)
     return tv1 + tv2;
 }
 
+template<typename Ref_Type, typename Ref_Type& ptr, typename Ref_Type default_value = 0>
+void set_ref(const Ref_Type& value) {
+    ptr = value;
+}
 
-
-
-
-
-
-
+template<typename Ref_Type, typename Ref_Type& ptr, typename Ref_Type default_value = 0>
+void set_ref() {
+    ptr = default_value;
+}
 #endif //CXX_TEMPLATE_FUNC_HPP
