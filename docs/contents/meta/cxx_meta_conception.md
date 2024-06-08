@@ -12,6 +12,7 @@
   - [3.4 类型推断](#34-类型推断)
   - [3.5 模板参数约束](#35-模板参数约束)
   - [3.6 默认参数](#36-默认参数)
+  - [3.7 类成员模板函数](#37-类成员模板函数)
 - [4. decltype](#4-decltype)
 - [5. auto和decltype](#5-auto和decltype)
 
@@ -463,6 +464,27 @@ set_ref<int, shit>();
 std::cout << shit << std::endl; // 0
 ```
 
+#### [3.7 类成员模板函数](#)
+在 C++ 中，类成员模板函数是一种允许类中的成员函数成为模板函数的特性，这使得成员函数可以根据调用时传递的不同类型进行实例化。
+
+```cpp
+class Registry {
+private:
+    //方法存储中心，使用hash 列表 存储, 参数是 BinarySerializer
+    std::unordered_map<std::string, std::function<void(BinarySerializer*)>> dictionary;
+public:
+    Registry() = default;
+    template<typename F, typename C>
+    bool Bind(const std::string& name, F func, C *c){
+        if (dictionary.find(name) == dictionary.end()){
+            dictionary[name] = std::bind(&Registry::Proxy<F,C>, this, func, c, std::placeholders::_1);
+            return true;
+        }
+        return false;
+  }
+}
+```
+
 ### [4. decltype](#)
 decltype 是 C++11 引入的一个关键字，用于获取表达式的类型。
 decltype 可以用于类型后置语法、获取函数参数类型、获取变量、函数返回值、数组元素、指针指向的类型等。
@@ -491,9 +513,7 @@ template<typename T1, typename T2>
     return xpt;
 }
 ```
-
 c++ 11 提供了decltype来解决这个问题 decltype被称作类型说明符，它的作用是选择并返回操作数的数据类型。
-
 
 工作原理 decltype 并不会实际计算表达式的值，编译器分析表达式并得到它的类型。
 
