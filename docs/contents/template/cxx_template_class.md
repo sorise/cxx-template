@@ -429,12 +429,18 @@ class MyClass
   inline explicit MyClass(U value)
   {
     this->i = value;
-    std::operator<<(std::cout, std::format(std::basic_format_string<char, int &>("template func call {}\n"), this->i));
+    std::operator<<(
+        std::cout, 
+        std::format(std::basic_format_string<char, int &>("template func call {}\n"), this->i)
+    );
   }
   
   inline MyClass()
   {
-    std::operator<<(std::cout, std::format(std::basic_format_string<char, int &>("default func call {}\n"), this->i));
+    std::operator<<(
+        std::cout, 
+        std::format(std::basic_format_string<char, int &>("default func call {}\n"), this->i)
+    );
   }
   
 };
@@ -459,7 +465,10 @@ class MyClass<int>
   : i{0}
   {
     this->i = static_cast<int>(value);
-    std::operator<<(std::cout, std::format(std::basic_format_string<char, int &>("template func call {}\n"), this->i));
+    std::operator<<(
+        std::cout, 
+        std::format(std::basic_format_string<char, int &>("template func call {}\n"),this->i)
+    );
   }
   #endif
   
