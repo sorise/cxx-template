@@ -5,6 +5,8 @@
 - [1. 类模板概念](#1-类模板概念)
 - [2. 类模板实例化](#2-类模板实例化)
 - [3. 模板类特殊成员](#3-模板类特殊成员)
+- [4. 将模板作为类型参数](#4-将模板作为类型参数)
+- [5. 变量模板](#5-变量模板)
 
 ---
 ### [1. 类模板概念](#)
@@ -146,6 +148,35 @@ public:
     }
 };
 ```
+
+**another example**
+```cpp
+template<typename T, unsigned int N>
+class Array final
+{
+private:
+    T *container;
+    std::stack<T> _t_stack;
+public:
+    Array(std::initializer_list<T> list);
+    Array(const Array<T,N>& other);
+    Array(const Array<T,N>&& other);
+    Array<T,N>& operator=(Array<T,N>& other);
+    template<typename U>
+    std::string getTypeName(U typeVariable);
+    int size() const;
+    T &operator[](int idx);
+    ~Array();
+};
+
+template<typename T, unsigned int N>
+template<typename U>
+std::string Array<T,N>::getTypeName(U typeVariable){
+    std::string typeName(typeid(typeVariable).name());
+    return typeName;
+}
+```
+
 **谨记**：
 * 类模板中的成员函数，只有源程序代码中出现调用这些成员函数的代码时，这些成员函数才会出现在一个实例化的类模板中。
 * 类模板中的成员函数模板，只有源程序代码中出现调用这些成员函数模板的代码时，这些成员函数模板的具体实例才会出现在一个实例化的类模板中。
@@ -486,3 +517,140 @@ int main()
 }
 ```
 
+### [4. 将模板作为类型参数](#)
+模板可以使用类型参数(typename T)和非类型参数(int n)。模板还可以包括本身就是模板的参数，这种参数是模板新增的特性，用于实现STL;
+
+**tk** 是参数，要求tk必须是一个模板类！ tk 是一个模板类，不是一个真实具体的类哦！
+```cpp
+//创建一个双栈类,T可以省略
+template< template <typename T> class tk, typename U>
+class StackDouble
+{
+private:
+    tk<U> stack_first;
+    tk<U> stack_second;
+public:
+    StackDouble()= default;
+    tk<U>& getFirstStack() { return this->stack_first;};
+    tk<U>& getSecondStack() { return this->stack_second;};
+};
+```
+使用模板类型参数
+```cpp
+StackDouble<std::stack, int> dl;
+
+dl.getFirstStack().push(25);
+dl.getFirstStack().push(28);
+
+dl.getSecondStack().push(21);
+
+StackDouble<Stack, double> stkdl; //或者用我们自己的模板类 Stack
+```
+
+理解以下这种情况, 非常有意思！ 将未实例化的模板类作为模板参数！
+
+**作为函数参数， 你要记住，将模板做类型参数和把模板做函数参数是不一样的！别混了**
+```cpp
+template<typename T>
+void giveStack(std::initializer_list<T> list){
+    for (auto &&i : list)
+    {
+        std::cout<< i << std::endl;   
+    }
+}
+```
+
+#### 4.1 参数可省略
+```cpp
+//template<template<typename K, typename V> class MAP, typename K, typename V>
+template<template<typename, typename> class MAP, typename K, typename V>
+class MapDouble
+{
+private:
+    MAP<K, V> map_first;
+    MAP<K, V> map_second;
+public:
+    MapDouble()= default;
+    MAP<K, V>& getFirstMap() { return this->map_first;};
+    MAP<K, V>& getSecondMap() { return this->map_second;};
+};
+
+MapDouble<std::map, int, int> dl2;
+```
+
+### [5. 变量模板](#)
+变量模板的英文为Variable Templates，是C++14标准引入的。这是 C++ 模板机制的一种扩展，**使得不仅函数和类可以是模板，变量也可以是模板**。
+
+变量模板的语法  
+变量模板的语法与函数模板和类模板类似。可以使用模板参数来定义一个变量模板，具体语法如下：
+```cpp
+template<typename T>
+inline constexpr T variable_name = value;
+```
+**实例**：定义了一个模板变量 max_value，并为 int 和 double 类型提供了特化版本。这样，我们就可以根据不同的类型来获取相应的最大值。
+```cpp
+template <typename T> inline constexpr T Variable{};
+
+Variable<int> = 10;
+std::cout << Variable<int> << std::endl;//10
+
+//最大值
+template<typename T>
+inline constexpr T max_value = T(0);
+
+template<>
+inline constexpr int max_value<int> = 2147483647;
+
+template<>
+inline constexpr double max_value<double> = 1.79769e+308;
+
+std::cout << "Max int: " << max_value<int> << std::endl;
+std::cout << "Max double: " << max_value<double> << std::endl;
+```
+
+引入变量模板的主要目的是为了**简化定义**（simplify definitions）以及对**模板化常量**（parameterized constant）的支持。
+
+#### 5.1 使用场景
+变量模板在以下几种情况下特别有用：
+
+* **类型相关常量**： 当需要定义一组与类型相关的常量时，变量模板可以提供一个简洁的解决方案。
+* **类型萃取**： 在泛型编程中，可以使用变量模板来定义类型萃取的结果。例如，可以定义一个模板变量来提取某种类型的某些属性。
+* **避免重复代码**： 使用变量模板可以避免为每种类型重复定义相同的变量。
+  
+**变量模板与常量表达式**：变量模板通常与 **constexpr** 关键字结合使用，以确保变量在编译时求值。这使得变量模板可以用作常量表达式，从而提高编译时计算的效率。
+
+#### 5.2 类型特征
+使用变量模板来定义某种类型的属性，例如检查某种类型是否为指针类型：
+```cpp
+#include <iostream>
+#include <type_traits>
+
+template<typename T>
+inline constexpr bool is_pointer_v = std::is_pointer<T>::value;
+
+int main() {
+    std::cout << std::boolalpha;
+    std::cout << "int: " << is_pointer_v<int> << std::endl;           // false
+    std::cout << "int*: " << is_pointer_v<int*> << std::endl;         // true
+    std::cout << "double*: " << is_pointer_v<double*> << std::endl;   // true
+    return 0;
+}
+```
+
+#### 5.3 数学常量
+定义数学常量，例如 π 的值。
+```cpp
+#include <iostream>
+
+template<typename T>
+inline constexpr T pi = T(3.1415926535897932385L);
+
+int main() {
+    std::cout << "pi<float>: " << pi<float> << std::endl;
+    std::cout << "pi<double>: " << pi<double> << std::endl;
+    std::cout << "pi<long double>: " << pi<long double> << std::endl;
+    return 0;
+}
+```
+
+> **总结**:使用变量模板，可以简化与类型相关的常量定义，提高代码的可读性和可维护性。变量模板特别适用于定义类型相关的常量、类型特征和避免重复代码的场景。

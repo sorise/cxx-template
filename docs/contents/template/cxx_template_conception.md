@@ -15,6 +15,7 @@
   - [3.7 类成员模板函数](#37-类成员模板函数)
 - [4. decltype](#4-decltype)
 - [5. auto和decltype](#5-auto和decltype)
+- [6. decltype(auto)类型推导](#6-decltypeauto类型推导)
 
 ----
 ### [1. 基本概念](#)
@@ -667,3 +668,70 @@ decltype(ref_height_const) drhc_ = ref_height_const; //const float &
 auto drh_a = ref_height; //float
 auto drh_b = ref_height_const; //float
 ```
+
+### [6. decltype(auto)类型推导](#)
+decltype(auto) 的作用是结合 decltype 的精确类型推断能力和 auto 的自动类型推断的便捷性。
+
+**使用场景**：decltype(auto) 通常在以下几种情况下使用：
+* **返回类型推断**： 当函数返回一个复杂的表达式或引用类型时，使用 decltype(auto) 可以确保返回类型与表达式的类型完全匹配。
+* **变量声明**： 在某些情况下，需要根据初始化表达式精确地推断变量类型，尤其是在表达式可能返回引用类型的时候。
+
+decltype(auto)可以用于推导函数返回值的类型，auto也可以用于推导函数的返回值类型，在讲解auto的那篇文章中就已讲解过。但auto有个问题就是会忽略掉返回值的引用属性，但如果你用auto&来推导返回值类型的话，那所有的类型都将是引用类型，这也不是实际想要的效果。
+
+一般来说，容器都有重载了“[]"运算符，但有的容器可能返回的是这个元素的值，有的可能返回的是元素的引用
+
+```cpp
+T& operator[](std::size_t index);
+// 或者
+T operator[](std::size_t index);
+```
+这时我们就可以用decltype(auto)来自动推导这个函数的返回值类型，函数的定义如下：
+```cpp
+template<typename Container, typename Index>
+decltype(auto) process(Container& c, Index i) {
+    // processing
+    return c[i]; //c.operator[](i)
+}
+```
+当传进来的容器的operator[]函数返回的是引用时，则上面的函数返回的是引用类型，如果operator[]函数返回的是一个值时，则上面的函数返回的是这个值的类型。
+```cpp
+struct S {int a;};
+
+int a = 0;
+
+S s;
+
+decltype(auto) g1() {return s.a;}           //int
+decltype(auto) g2() {return std::move(a);} //int &&
+decltype(auto) g3() {return (a);} //int &
+decltype(auto) g4() {return (0);} //int
+
+int main()
+{
+    decltype(auto) i1 = a;  //int
+    decltype(auto) i2 = std::move(a); //int &&
+    decltype(auto) i3 = (s.a); //int &
+    decltype(auto) i4 = (0); //int
+}
+```
+
+#### 6.1 decltype(auto)使用陷阱
+最后，对于decltype(auto)能够推导函数返回值为引用类型这一点，需要提醒一下的是，小心会有下面的陷阱，如下面的函数：
+
+```cpp
+decltype(auto) func() {
+    int x;
+    // do something...
+    return x;
+}
+```
+这里推导出来的返回值类型是int，并且会拷贝局部变量x的值，这个没有问题。但如果是这样的定义：
+
+```cpp
+decltype(auto) func() {
+    int x;
+    // do something...
+    return (x);
+}
+```
+这个版本返回的是一个引用，它将引用到一个即将销毁的局部变量上，当这个函数返回后，所返回的引用将引用到一个不存在的变量上，造成引用空悬的问题，程序的结果将是未知的。无论是有意的还是无意的返回一个引用，都要特别小心。
