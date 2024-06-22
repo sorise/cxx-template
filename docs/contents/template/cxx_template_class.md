@@ -584,8 +584,13 @@ MapDouble<std::map, int, int> dl2;
 变量模板的语法  
 变量模板的语法与函数模板和类模板类似。可以使用模板参数来定义一个变量模板，具体语法如下：
 ```cpp
+//变量模板定义
 template<typename T>
 inline constexpr T variable_name = value;
+
+//特化语法
+template<>
+inline constexpr Type variable_name<Type> = special_value;
 ```
 **实例**：定义了一个模板变量 max_value，并为 int 和 double 类型提供了特化版本。这样，我们就可以根据不同的类型来获取相应的最大值。
 ```cpp
@@ -653,4 +658,48 @@ int main() {
 }
 ```
 
+#### 5.4 模板默认参数
+变量模板指定默认模板参数是可以的,但是使用的时候还是需要`<>`辅助。
+```cpp
+template<typename T = int >
+inline constexpr T min_value = T(0);
+
+template<>
+inline constexpr int min_value<int> = -2147483648;
+
+std::cout << "min int value:" << min_value<> << std::endl;
+//-2147483648
+```
+
+#### 5.5 非类型模板参数
+变量模板指定非类型的模板参数也可以。
+
+```cpp
+template<typename T, size_t N> T Variable[N];
+
+for (int i = 0; i < 10; ++i) {
+    Variable<int, 10>[i] = 10 * (i+1);
+    std::cout << Variable<int, 10>[i] << " ";
+}
+```
+
+#### 5.6 变量模板做成员
+这种写法有点逆天、可读性查，谨慎使用。
+
+```cpp
+template <typename T> class D {
+public:
+    template <typename W> static W STP; //静态成员变量模板声明
+};
+
+//初始化
+template <typename T>
+template <typename W>
+W D<T>::STP = 5;
+
+//使用
+std::cout << D<double>::STP<int> << std::endl; //5
+```
 > **总结**:使用变量模板，可以简化与类型相关的常量定义，提高代码的可读性和可维护性。变量模板特别适用于定义类型相关的常量、类型特征和避免重复代码的场景。
+
+### [6. 别名模板](#) 
