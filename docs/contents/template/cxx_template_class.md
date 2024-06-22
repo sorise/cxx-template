@@ -1,4 +1,4 @@
-## [C++ 类模板](#)
+## [C++ 类模板、变量模板、别名模板](#)
 > **介绍**: C++ 类模板，也是产生类的模具，通过给定的模板参数，生成具体的类，也就是实例化一个特定的类，这个概念听起来跟函数模板差不多。
 
 ----
@@ -7,6 +7,10 @@
 - [3. 模板类特殊成员](#3-模板类特殊成员)
 - [4. 将模板作为类型参数](#4-将模板作为类型参数)
 - [5. 变量模板](#5-变量模板)
+- [6. 别名模板](#6-别名模板)
+- [7. 共用体模板](#7-共用体模板)
+- [8. 模板类与友元函数](#9-模板类与友元函数)
+- [9. 类模板与友元类](#9-类模板与友元类)
 
 ---
 ### [1. 类模板概念](#)
@@ -702,4 +706,260 @@ std::cout << D<double>::STP<int> << std::endl; //5
 ```
 > **总结**:使用变量模板，可以简化与类型相关的常量定义，提高代码的可读性和可维护性。变量模板特别适用于定义类型相关的常量、类型特征和避免重复代码的场景。
 
-### [6. 别名模板](#) 
+### [6. 别名模板](#)
+别名模板的英文叫作Alias Templates，是C++ 11标准引入的，引入的目的是不但能简化书写，而且可以达到通过其他手段很难实现的效果，一般都是通过using实现别名模板，看一看范例：
+
+```cpp
+#include <map>
+template<typename T>
+using Str_Map = std::map<std::string, T>; 
+
+Str_Map<double> scores {{"2021", 100.0},{"2022", 121.0},{"2023", 177.0}};
+
+std::for_each(scores.begin(), scores.end(), [](auto& item) {
+   std::cout << std::format("{}:{}", item.first, item.second) << std::endl;
+});
+```
+
+### [7. 共用体模板](#)
+共用体是把几种不同类型的变量存放到同一段内存单元, 也称为联合体，使用模板的情况比较少见。
+```cpp
+template<typename G, typename E>
+union unit{
+    G cell;
+    E grid;
+};
+
+unit<int, double> u{100};
+std::cout << std::format("cell:{}", u.cell) << std::endl; //100
+u.grid = 189.14;
+std::cout << std::format("grid:{}", u.grid) << std::endl; //189.14
+```
+
+### [8. 模板类与友元函数](#)
+模板类也可以有友元，模板的友元有三类
+
+* 非模板友元！
+* 约束模板友元：**即友元的类型取决于类被实例化的类型**！
+* 非约束模板友元，**即友元的所有具体化都是类的每一个具体化的友元**！
+
+#### [8.1 非模板友元](#)
+**在模板类中将一个常规的函数声明为友元！** ,根据参数是否与类模板参数匹配，有不同的情况。
+
+* counts() 函数将称为所有模板实例化的友元。例如它将会是类 Array<int, 10> 和 Array<double, 10> 的友元！ 
+> counts函数不能通过Array模板类的对象调用，那么怎么友好的访问 Array的实例类中的成员呢？ 这就看你自己的设计了，比如定义全局对象，全局指针！让当前函数可以访问！ 还可以访问模板类对象的静态成员!
+
+```cpp
+template<typename T, unsigned int N>
+class Array final
+{
+private:
+    T *container;
+public:
+    friend void counts(); //非模板友元
+    friend void report(Array<T,N> & tmp);//带模板类参数
+    Array(std::initializer_list<T> list);
+    Array(const Array<T,N>& other);
+    Array(const Array<T,N>&& other);
+    Array<T,N>& operator=(Array<T,N>& other);
+    int size() const;
+    T &operator[](int idx);
+    ~Array();
+};
+```
+friend void report(Array<T,N> & tmp) report 函数和上面就不一样了！ 
+**要记住 report不能声明为： friend void report(Array & tmp)！ 得有类型参数** ！
+实例化后 friend void report(Array<int,10> & tmp) 就是 Array<int,10>的友元函数！ friend void report(Array<double,10> & tmp) 是 Array<double,10>的友元！
+
+**重点**：report()本身并不是模板函数，而只是使用一个模板作参数。这意味着必须为要使用的友元定义显式具体化: 也就说你得自己写
+* void report(Array<int, 10> &tmp); 显式具体化
+* void report(Array<double, 10> &tmp); 显式具体化
+
+```cpp
+void report(Array<int, 10> &temp){
+    /* 函数体 */
+}
+
+void report(Array<double, 10> &temp){
+    /* 函数体 */
+}
+```
+#### [8.2 约束模板友元函数](#)
+使友元函数本身成为模板,来使得类的每一个具体化多度获得一个与友元匹配的具体化！
+
+```cpp
+template<typeName T, unsigned int N>
+void counts(){
+    /* ... */
+}
+
+template<typeName T>
+void report(T &tmp){
+    /* ... */
+}
+//这里的T 可以使 Array<T,N> 的任意实例化 例如 Array<double, 10>
+// T还可以是 int  double  其他class 
+
+template<typename T, unsigned int N>
+class Array final
+{
+public:
+    friend void counts<T,N>(); //约束模板友元函数
+    friend void report<>(Array<T,N> & tmp);//约束模板友元函数
+    /* ... */
+};
+```
+声明中\<\>指出这是模板具体化，注意模板具体化和函数具体化有点不一样。对于report，\<\>可以为空,因为可以从函数参数推断出模板类型参数。在声明的例子中是：HasfriendT\<TT\>。然而，也可以使用report\<HasFriendT\<TT\>\> 来代替 report\<\> 。
+由于counts()函数没有参数，所以必须使用模板参数 counts\<T,N\>() 来制定生成具体的友元函数！
+
+实例化一个 Array\<double, 10\> 生成下面的类定义！
+
+```cpp
+class Array<double, 10> final
+{
+public:
+    friend void counts<double,10>(); //约束模板友元函数
+    friend void report<>(Array<double,10> & tmp);//约束模板友元函数
+    friend void report<>(Array<double,10> & tmp);//约束模板友元函数
+    /* ... */
+};
+```
+由于模板类具体化了，再调动友元模板函数也具体化！
+
+#### [8.3 非约束模板友元函数](#)
+上面的是将友元函数声明在类外面，这个的意思就是将模板函数声明在类里面！
+
+通过在类内部声明友元函数模板，可以创建非约束友元函数，即每个模板函数实例都是每个类的每个实例的友元，当使用这种类型的友元模板函数时是不需要前置声明的。
+```cpp
+template <typename C,typename D>
+void show(C & c,D & d){ 
+    //... 
+}
+
+template <typename T>
+class ManyFriend
+{
+ //...
+ template <typename C,typename D> friend void show(C &,D &);
+};
+```
+假如创建ManyFriend类对象(hfi1)和ManyFriend类对象(hfi2)，传递给show()，那么编译器将生成如下具体化
+```cpp
+void show<ManyFriend<int> &,ManyFriend<double> &>(ManyFriend<int> & c,ManyFriend<double> & d){ 
+    //...    
+}
+```
+
+### [9. 类模板与友元类](#)
+传统友元类的概念是：让某个类B成为另外一个类A的友元类，这样的话，类B就可以在其成员函数中访问类A的所有成员（成员变量、成员函数），而不管这些成员在类A中是用什么修饰符（private、protected、public）修饰的。
+
+如果现在类A和类B都变成了类模板，那么能否让类模板B成为类模板A的友元类模板呢？这要分3种情况讨论。
+* 让类模板的某个实例成为友元类
+* 让类模板成为友元类模板
+* 让类型模板参数成为友元类
+
+#### [9.1 让类模板的某个实例成为友元类](#)
+代码一看就懂：
+```cpp
+template<typename U>
+class graduate;
+
+template<typename T>
+class student{
+    friend class graduate<float>; //实例友元类
+private:
+    std::string student_id{};
+    double score{0};
+
+    T * data;
+};
+
+template<typename U>
+class graduate{
+private:
+    student<float> _student;
+public:
+    double get_score(){
+        std::cout << "score: " << _student.score << std::endl;
+        return _student.score;
+    }
+    void set_score(double score){
+        _student.score = score;
+    }
+};
+
+graduate<float> me;
+
+me.set_score(100);
+me.get_score();
+
+graduate<int> me1; //编译失败
+me1.set_score(120);
+me1.get_score();
+```
+
+#### [9.2 让类模板成为友元类模板](#)
+代码一看就懂, 一定要注意友元类模板的声明方式，不需要参数说明！
+```cpp
+template<typename U>
+class graduate;
+
+template<typename T>
+class student{
+    template<typename> friend class graduate;
+private:
+    std::string student_id{};
+    double score{0};
+    T * data;
+};
+
+template<typename U>
+class graduate{
+private:
+    student<float> _student;
+public:
+    double get_score(){
+        std::cout << "score: " << _student.score << std::endl;
+        return _student.score;
+    }
+    void set_score(double score){
+        _student.score = score;
+    }
+};
+```
+**切记**：如下声明方式是错误的
+```cpp
+template<typename T>
+class student{
+    template<typename U> friend class graduate<U>;
+private:
+    std::string student_id{};
+    double score{0};
+    T * data;
+};
+```
+
+#### [9.3 让类型模板参数成为友元类](#)
+这是一个C++ 11标准引入的特性：如果传递进来的类型模板参数是一个类类型，则这个类类型可以成为当前类模板的友元类，
+**需要省略关键字 class**。
+
+```cpp
+template<typename T>
+class special{
+    friend T;
+private:
+    int data {0};
+};
+
+class object{
+public:
+     void call(){
+        special<object> t;
+        t.data = 100;
+        std::cout << "special data value: " << t.data << std::endl;
+    }
+};
+
+object obj;
+obj.call(); //100
+```
