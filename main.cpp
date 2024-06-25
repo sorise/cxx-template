@@ -13,8 +13,6 @@
 using namespace ponder::generics::cls;
 
 
-
-
 int main()
 {
     std::cout << "max int value:" <<ponder::generics::cls::max_value<int> << std::endl;
