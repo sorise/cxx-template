@@ -8,9 +8,10 @@
 #include "ponder/macro/autoget_set.hpp"
 #include "ponder/generics/func/func.hpp"
 #include "ponder/generics/cls/vari.h"
-
+#include "ponder/generics/cls/para.h"
 
 using namespace ponder::generics::cls;
+
 
 
 int main()
@@ -36,5 +37,12 @@ int main()
 
     object obj;
     obj.call();
+
+    swagger<int, double,bool> sw;
+    auto sizes = sw.args_size();
+
+    for (auto v : sizes) {
+        std::cout << std::format("size:{} ", v);
+    }
 
 }
