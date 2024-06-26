@@ -13,7 +13,6 @@
 using namespace ponder::generics::cls;
 
 
-
 int main()
 {
     std::cout << "max int value:" <<ponder::generics::cls::max_value<int> << std::endl;
@@ -24,7 +23,6 @@ int main()
     std::for_each(scores.begin(), scores.end(), [](auto& item) {
        std::cout << std::format("{}:{}", item.first, item.second) << std::endl;
     });
-
 
     unit<int, double> u{100};
     std::cout << std::format("cell:{}", u.cell) << std::endl;
