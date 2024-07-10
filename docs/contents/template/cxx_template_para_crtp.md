@@ -280,3 +280,267 @@ C++17的折叠表达式为处理参数包提供了一种更简洁的方式。从
 **代码生成**：一旦折叠表达式被完全展开，编译器就会为每个操作生成相应的代码。这个过程与普通的二元操作代码生成相同。
 
 **优化**：在代码生成之后，编译器的优化阶段可能会进一步处理这些操作，如合并相似操作、消除无用代码等。
+
+#### [1.4 通过递归继承方式展开参数包](#)
+通过递归继承的方式展开参数包，这是一种非常常见的类模板参数包展开方式。
+
+```c++
+//主模板声明
+template<typename ...Args>
+class Expand{
+public:
+    virtual constexpr size_t args_count() noexcept{
+        return sizeof...(Args);
+    }
+};
+//可变参类模板的偏特化
+template<typename T, typename ...Args>
+class Expand<T, Args...>: private Expand<Args...>{
+public:
+    constexpr size_t args_count() noexcept override{
+        return sizeof...(Args) + 1;
+    }
+};
+```
+**使用**:
+```c++
+Expand<double, int, bool, float> goer;
+std::cout << goer.args_count();
+```
+
+**Expand\<\>** `--->` **Expand\<double>** `--->`  **Expand\<double, int>**  `--->`  **Expand\<double, int, bool>**
+`--->` **Expand\<double, int, bool, float>**
+
+### [2. 多态在模板中的应用](#)
+**多态**: 指的是子类可以替换父类! 对同一个完全相同的消息，所表现出来的动作是各不相同的！  
+**重载**: 函数名相同，但是函数的参数不同，调用时根据参数的不同决定调用哪一个函数。
+
+多态在模板中的应用，主要通过虚函数来实现，有父类和子类（有继承关系），父类中必须含有虚函数，子类重写父类中的虚函数。
+
+**传统多态也叫作动态多态（运行时的多态），因为要访问虚函数表指针，所以程序执行性能上多少会有一些影响**
+
+[**静态多态**](https://www.cnblogs.com/lizhenghn/p/3667681.html): 在模板中运用的多态技术在编译期间就确定了具体调用谁，因此并不存在这样的性能问题，这也是泛型编程与面向对象程序设计的不同之处的一个体现。
+
+**优点**：
+* 由于静多态是在编译期完成的，因此效率较高，编译器也可以进行优化；
+* 有很强的适配性和松耦合性，比如可以通过偏特化、全特化来处理特殊类型；
+* 最重要一点是静态多态通过模板编程为C++带来了泛型设计的概念，比如强大的STL库。
+
+**缺点：**
+* 由于是模板来实现静态多态，因此模板的不足也就是静多态的劣势，比如调试困难、编译耗时、代码膨胀、编译器支持的兼容性
+* 不能够处理异质对象集合
+
+**不同点**：
+* 本质不同，静态多态在编译期决定，由模板具现完成，而动态多态在运行期决定，由继承、虚函数实现；
+* 动态多态中接口是显式的，以函数签名为中心，多态通过虚函数在运行期实现，静态多台中接口是隐式的，以有效表达式为中心，多态通过模板具现在编译期完成
+
+**相同点**：
+* 都能够实现多态性，静态多态/编译期多态、动态多态/运行期多态；
+* 都能够使接口和实现相分离，一个是模板定义接口，类型参数定义实现，一个是基类虚函数定义接口，继承类负责实现；
+
+#### [2.1 动态多态](#)
+动态多态是在运行时完成的，也可以叫做运行期多态，这造就了动态多态机制在处理异质对象集合时的强大威力（当然，也有了一点点性能损失）。
+
+```c++
+//示例
+class Geometry
+{
+public:
+      virtual void Draw() const = 0;
+};
+
+class Line: public Geometry
+{
+public:
+      virtual void Draw() const{    std::cout << "Line Draw()\n";    }
+};
+
+class Circle: public Geometry
+{
+public:
+      virtual void Draw() const{    std::cout << "Circle Draw()\n";    }
+};
+
+class Rectangle: public Geometry
+{
+public:
+      virtual void Draw() const{    std::cout << "Rectangle Draw()\n";    }
+};
+
+void DrawGeometry(const Geometry *geo)
+{
+    geo->Draw();
+}
+
+//动态多态最吸引人之处在于处理异质对象集合的能力
+void DrawGeometry(std::vector<DynamicPoly::Geometry*> vecGeo)
+{
+    const size_t size = vecGeo.size();
+    for(size_t i = 0; i < size; ++i)
+    vecGeo[i]->Draw();
+}
+```
+
+#### [2.2 静态多态](#)
+在模板中的多态使用方式，与传统的多态相比，省略一个父类，也省略成员函数前面的virtual修饰符，所以代码看起来更简洁。而且，显然静态多态比动态多态具有更好的执行效率，因为查询虚函数表确定调用哪个虚函数等一系列判断决策只出现在动态多态中。
+```c++
+class Line
+{
+public:
+    void Draw()const{    std::cout << "Line Draw()\n";    }
+};
+
+class Circle
+{
+public:
+    void Draw(const char* name=NULL)const{    std::cout << "Circle Draw()\n";    }
+};
+
+class Rectangle
+{
+public:
+    void Draw(int i = 0)const{    std::cout << "Rectangle Draw()\n";    }
+};
+
+template<typename Geometry>
+void DrawGeometry(const Geometry& geo)
+{
+    geo.Draw();
+}
+
+template<typename Geometry>
+void DrawGeometry(std::vector<Geometry> vecGeo)
+{
+    const size_t size = vecGeo.size();
+    for(size_t i = 0; i < size; ++i)
+        vecGeo[i].Draw();
+}
+```
+
+### [3. 奇异（奇特）的递归模板模式（CRTP）](#)
+奇异的递归模板模式（Curiously Recurring Template Pattern，CRTP）不是一种新技术，而是一种模板编程时使用的编程手法—**把派生类作为基类的模板参数**。
+
+```c++
+// 基类是模板类
+template<typename SON>
+class Father{
+public:
+    Father() = default;
+    void call_son(){
+        SON *s = static_cast<SON*>(this);
+        s->do_something();
+    }
+};
+// 派生类Son继承自Father<Son>，并以自身作为模板参数传递给基类
+class Son: public Father<Son>{
+public:
+    void do_something(){
+        std::cout << "Son do_something\n";
+    }
+};
+```
+可以看到，在基类内部，通过使用static_cast，将this指针转换为模板参数类型T的指针，然后调用类型T的方法。这里有个问题：
+
+当static_cast用于类层次结构中基类（父类）和派生类（子类）之间指针或引用的转换，在进行上行转换（把派生类的指针或引用转换成基类表示）是安全的；而下行转换（把基类指针或引用转换为派生类表示）由于没有动态类型检查，所以不一定安全。
+
+但是，CRTP 的设计原则就是假设 Derived 会继承于 Base。CRTP的要求是，所有的派生类应有如下形式的定义：
+
+```c++
+class Derived1 : public Base<Derived1> {};
+class Derived2 : public Base<Derived2> {};
+```
+从基类对象的角度看，派生类对象就是本身（即Derived是一个Base，猫是一种动物）。
+
+而在实际使用时，我们只使用Derived1，Derived2的对象，不会直接使用Base<Derived1>，Base<Derived2>类型定义对象。这就保证了当static_cast被执行的时候，基类Base<DerivedX>的指针一定指向一个子类DerivedX的对象，因此转换是安全的。
+
+* **优点**：省去动态绑定、查询虚函数表带来的开销。通过CRTP，基类可以获得到派生类的类型，提供各种操作，比普通的继承更加灵活。但CRTP基类并不会单独使用，只是作为一个模板的功能。
+* **缺点**：模板的通病，即影响代码的可读性。
+
+#### [3.1 CRTP应用之计数器](#)
+实现不同子类的计数器：
+
+```c++
+template<typename T>
+class counter
+{
+public:
+    static int count;
+    static std::mutex mtx;
+    counter()
+    {
+        std::lock_guard<std::mutex> lck(counter<T>::mtx);
+        ++counter<T>::count;
+    }
+    ~counter()
+    {
+        std::lock_guard<std::mutex> lck(counter<T>::mtx);
+        --counter<T>::count;
+    }
+};
+
+template<typename T>
+int counter<T>::count = 0;
+
+template<typename T>
+std::mutex counter<T>::mtx = std::mutex();
+
+class dog_counter : public counter<dog_counter>
+{
+public:
+    [[nodiscard]] int get_count() const
+    {
+        return this->count;
+    }
+};
+
+class cat_counter : public counter<cat_counter>
+{
+public:
+    [[nodiscard]] int get_count() const
+    {
+        return this->count;
+    }
+};
+/*
+DogCount : 1
+DogCount : 2
+DogCount : 1
+CatCount : 7
+t1 CatCount : 21
+t2 CatCount : 14
+* */
+```
+
+#### [3.2 enable_shared_from_this](#)
+某个类想返回智能指针版的this时，需要该类继承enable_shared_from_this,通过shared_from_this()返回对应智能指针。
+
+```c++
+// CLASS TEMPLATE enable_shared_from_this
+template<class _Ty>
+class enable_shared_from_this
+{	
+// provide member functions that create shared_ptr to this
+public:
+    using _Esft_type = enable_shared_from_this;
+
+    _NODISCARD shared_ptr<_Ty> shared_from_this()
+    {	// return shared_ptr
+    return (shared_ptr<_Ty>(_Wptr));
+    }
+
+    _NODISCARD shared_ptr<const _Ty> shared_from_this() const
+    {	// return shared_ptr
+    return (shared_ptr<const _Ty>(_Wptr));
+    }
+
+    _NODISCARD weak_ptr<_Ty> weak_from_this() noexcept
+    {	// return weak_ptr
+        return (_Wptr);
+    }
+
+    _NODISCARD weak_ptr<const _Ty> weak_from_this() const noexcept
+    {	// return weak_ptr
+        return (_Wptr);
+    }
+}
+```

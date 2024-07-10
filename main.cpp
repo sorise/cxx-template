@@ -9,38 +9,37 @@
 #include "ponder/generics/func/func.hpp"
 #include "ponder/generics/cls/vari.h"
 #include "ponder/generics/cls/para.h"
+#include "ponder/generics/cls/cls.hpp"
 
 using namespace ponder::generics::cls;
 
 
 int main()
 {
-    std::cout << "max int value:" <<ponder::generics::cls::max_value<int> << std::endl;
-    std::cout << "min int value:" <<ponder::generics::cls::min_value<> << std::endl;
+    dog_counter d1;
 
-    Str_Map<double> scores {{"2021", 100.0},{"2022", 121.0},{"2023", 177.0}};
+    std::cout << "DogCount : " << d1.get_count() << std::endl;
 
-    std::for_each(scores.begin(), scores.end(), [](auto& item) {
-       std::cout << std::format("{}:{}", item.first, item.second) << std::endl;
-    });
-
-    unit<int, double> u{100};
-    std::cout << std::format("cell:{}", u.cell) << std::endl;
-    u.grid = 189.14;
-    std::cout << std::format("grid:{}", u.grid) << std::endl;
-
-    graduate<int> me;
-    me.set_score(100);
-    me.get_score();
-
-    object obj;
-    obj.call();
-
-    swagger<int, double,bool> sw;
-    auto sizes = sw.args_size();
-
-    for (auto v : sizes) {
-        std::cout << std::format("size:{} ", v);
+    {
+        dog_counter d2;
+        std::cout << "DogCount : " << d1.get_count() << std::endl;
     }
 
+    std::cout << "DogCount : " << d1.get_count() << std::endl;
+
+    cat_counter c1, c2, c3, c4, c5[3];
+    std::cout << "CatCount : " << c1.get_count() << std::endl;
+
+    std::thread t1([](){
+        cat_counter c1, c2, c3, c4, c5[3];
+        std::cout << "t1 CatCount : " << c1.get_count() << std::endl;
+    });
+
+    std::thread t2([](){
+        cat_counter c1, c2, c3, c4, c5[3];
+        std::cout << "t2 CatCount : " << c1.get_count() << std::endl;
+    });
+
+    t1.join();
+    t2.join();
 }
