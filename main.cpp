@@ -14,32 +14,12 @@
 using namespace ponder::generics::cls;
 
 
+
 int main()
 {
-    dog_counter d1;
+   std::shared_ptr<car> byd1 = std::make_shared<car>("xiaomi su7");
+   std::shared_ptr<car> byd2 = byd1->get_shared();
 
-    std::cout << "DogCount : " << d1.get_count() << std::endl;
-
-    {
-        dog_counter d2;
-        std::cout << "DogCount : " << d1.get_count() << std::endl;
-    }
-
-    std::cout << "DogCount : " << d1.get_count() << std::endl;
-
-    cat_counter c1, c2, c3, c4, c5[3];
-    std::cout << "CatCount : " << c1.get_count() << std::endl;
-
-    std::thread t1([](){
-        cat_counter c1, c2, c3, c4, c5[3];
-        std::cout << "t1 CatCount : " << c1.get_count() << std::endl;
-    });
-
-    std::thread t2([](){
-        cat_counter c1, c2, c3, c4, c5[3];
-        std::cout << "t2 CatCount : " << c1.get_count() << std::endl;
-    });
-
-    t1.join();
-    t2.join();
+   byd1->show_name();
+   byd2->show_name();
 }

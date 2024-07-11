@@ -154,5 +154,30 @@ namespace ponder::generics::cls{
             return this->count;
         }
     };
+
+    class car: public std::enable_shared_from_this<car>{
+    public:
+        /**
+         * car 类的构造函数
+         *
+         * @param _name 车辆的名称，通过移动语义传递，以提高效率。
+         *               移动语义可以避免复制字符串，从而节省资源。
+         */
+        explicit car(std::string _name):name(std::move(_name)){
+            // 构造函数体为空，通过初始化列表初始化成员变量 name
+        }
+        std::shared_ptr<car> get_shared(){
+            return shared_from_this();
+        }
+        ~car(){
+            std::cout << "~car() - car free." << std::endl;
+        }
+        void show_name(){
+            std::cout << "car name: " << name << std::endl;
+        }
+    private:
+        std::string name;
+    };
+
 }
 #endif //CXX_TEMPLATE_PARA_H

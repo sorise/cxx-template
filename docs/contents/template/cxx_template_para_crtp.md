@@ -4,6 +4,8 @@
 -----
 
 * [1. 可变参数模板](#1-可变参数模板)
+* [2. 多态在模板中的应用](#2-多态在模板中的应用)
+* [3. CRTP](#3-crtp)
 
 --- 
 ### [1. 可变参数模板](#)
@@ -417,7 +419,7 @@ void DrawGeometry(std::vector<Geometry> vecGeo)
 }
 ```
 
-### [3. 奇异（奇特）的递归模板模式（CRTP）](#)
+### [3. CRTP](#)
 奇异的递归模板模式（Curiously Recurring Template Pattern，CRTP）不是一种新技术，而是一种模板编程时使用的编程手法—**把派生类作为基类的模板参数**。
 
 ```c++
@@ -438,6 +440,11 @@ public:
         std::cout << "Son do_something\n";
     }
 };
+
+// 在基类中使用派生类对象
+
+Son son;
+son.call_son(); //Son do_something
 ```
 可以看到，在基类内部，通过使用static_cast，将this指针转换为模板参数类型T的指针，然后调用类型T的方法。这里有个问题：
 
@@ -455,6 +462,7 @@ class Derived2 : public Base<Derived2> {};
 
 * **优点**：省去动态绑定、查询虚函数表带来的开销。通过CRTP，基类可以获得到派生类的类型，提供各种操作，比普通的继承更加灵活。但CRTP基类并不会单独使用，只是作为一个模板的功能。
 * **缺点**：模板的通病，即影响代码的可读性。
+
 
 #### [3.1 CRTP应用之计数器](#)
 实现不同子类的计数器：
@@ -512,35 +520,125 @@ t2 CatCount : 14
 ```
 
 #### [3.2 enable_shared_from_this](#)
-某个类想返回智能指针版的this时，需要该类继承enable_shared_from_this,通过shared_from_this()返回对应智能指针。
+它提供了一种方式，允许一个对象（通常是由 std::shared_ptr 管理的）生成一个指向自身的 std::shared_ptr，即使对象自身是
+通过裸指针（raw pointer）传递给 std::shared_ptr 构造函数的。
 
+这种操作通常在对象需要将自身作为参数传递给回调函数或异步操作时非常有用。
+
+某个类想返回智能指针版的this时，需要该类继承enable_shared_from_this,通过shared_from_this()返回对应智能指针。
 ```c++
-// CLASS TEMPLATE enable_shared_from_this
-template<class _Ty>
-class enable_shared_from_this
-{	
-// provide member functions that create shared_ptr to this
+_EXPORT_STD template <class _Ty>
+class enable_shared_from_this { // provide member functions that create shared_ptr to this
 public:
     using _Esft_type = enable_shared_from_this;
 
-    _NODISCARD shared_ptr<_Ty> shared_from_this()
-    {	// return shared_ptr
-    return (shared_ptr<_Ty>(_Wptr));
+    _NODISCARD shared_ptr<_Ty> shared_from_this() {
+        return shared_ptr<_Ty>(_Wptr);
     }
 
-    _NODISCARD shared_ptr<const _Ty> shared_from_this() const
-    {	// return shared_ptr
-    return (shared_ptr<const _Ty>(_Wptr));
+    _NODISCARD shared_ptr<const _Ty> shared_from_this() const {
+        return shared_ptr<const _Ty>(_Wptr);
     }
 
-    _NODISCARD weak_ptr<_Ty> weak_from_this() noexcept
-    {	// return weak_ptr
-        return (_Wptr);
+    _NODISCARD weak_ptr<_Ty> weak_from_this() noexcept {
+        return _Wptr;
     }
 
-    _NODISCARD weak_ptr<const _Ty> weak_from_this() const noexcept
-    {	// return weak_ptr
-        return (_Wptr);
+    _NODISCARD weak_ptr<const _Ty> weak_from_this() const noexcept {
+        return _Wptr;
     }
+
+protected:
+    constexpr enable_shared_from_this() noexcept : _Wptr() {}
+
+    enable_shared_from_this(const enable_shared_from_this&) noexcept : _Wptr() {
+        // construct (must value-initialize _Wptr)
+    }
+
+    enable_shared_from_this& operator=(const enable_shared_from_this&) noexcept { // assign (must not change _Wptr)
+        return *this;
+    }
+
+    ~enable_shared_from_this() = default;
+
+private:
+    template <class _Yty> friend class shared_ptr;
+
+    mutable weak_ptr<_Ty> _Wptr;
+};
+
+```
+enable_shared_from_this从本质上来说解决了不能直接冲this对象构造智能指针的问题，但是使用时也需要注意，既返回的智能智能必须要通过shared_from_this()获取。
+
+**不使用enable_shared_from_this的问题**
+```c++
+int main()
+{
+  int* pt = new int();
+  shared_ptr<int> _p1(pt);
+  shared_ptr<int> _p2(pt);
+  std::cout << "_p1.use_count() = " << _p1.use_count() << std::endl;
+  std::cout << " _p2.use_count() = " << _p2.use_count() << std::endl;
+  return 0;
+} //这会导致多次释放问题
+```
+如果我们使用对象本身来获取智能指针，**还是有多次释放问题**。
+```c++
+class car{
+public:
+    explicit car(std::string _name):name(std::move(_name)){
+
+    }
+    std::shared_ptr<car> get_shared(){
+        return std::shared_ptr<car>(this);
+    }
+    ~car(){
+        std::cout << "~car() - car free." << std::endl;
+    }
+    void show_name(){
+        std::cout << "car name: " << name << std::endl;
+    }
+private:
+    std::string name;
+};
+
+int main()
+{
+   car* vtd = new car("Xiaomi SU7");
+   std::shared_ptr<car> byd1 = vtd->get_shared();
+   std::shared_ptr<car> byd2 = vtd->get_shared();
+
+   byd1->show_name();
+   byd2->show_name();
 }
 ```
+此时需要使用enable_shared_from_this，通过shared_from_this()返回对应智能指针。
+```c++
+class car: public std::enable_shared_from_this<car>{
+public:
+    explicit car(std::string _name):name(std::move(_name)){
+
+    }
+    std::shared_ptr<car> get_shared(){
+        return shared_from_this();
+    }
+    ~car(){
+        std::cout << "~car() - car free." << std::endl;
+    }
+    void show_name(){
+        std::cout << "car name: " << name << std::endl;
+    }
+private:
+    std::string name;
+};
+
+int main()
+{
+   std::shared_ptr<car> byd1 = std::make_shared<car>("xiaomi su7");
+   std::shared_ptr<car> byd2 = byd1->get_shared();
+
+   byd1->show_name();
+   byd2->show_name();
+}
+```
+通过原始指针的方式实例化shared_ptr很容易产生同一个原始指针实例化多个shared_ptr这样的编码疏忽，从而造成严重后果。 因此**尽量使用std::make_shared或者std::allocate_shared来降低出错的可能性**。
