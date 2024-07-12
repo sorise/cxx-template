@@ -283,6 +283,10 @@ ary_ptr = new Array<double, 10>({95.5,85.0,96.25,94.45,90.5}); //会生成具体
 ```cpp
 template class Array<animal, 10>; // 生成一个 Array<animal, 10> 类
 ```
+其他cpp文件使用 `Array<animal, 10>` 类使用如下声明，**extern有“禁止实例化”这样的意思**。
+```c++
+extern template class Array<animal, 10>; 
+```
 
 #### [2.3 类模板特化](#)
 等同于函数的具体化(特化)，为特定类型定义一个类, 属于特殊要求。

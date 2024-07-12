@@ -10,7 +10,8 @@
 **模板:**
 - [模板初步、函数模板](docs/contents/template/cxx_template_conception.md): 区分模板、泛型编程和元编程基本概念，函数模板、decltype。
 - [类模板、变量模板](docs/contents/template/cxx_template_class.md): 类模板、typename 关键字、变量模板、别名模板。
-- [可变参数模板、CRTP](docs/contents/template/cxx_template_para_crtp.md): 可变参数模板、CRTP。
+- [可变参数模板、CRTP](docs/contents/template/cxx_template_para_crtp.md): 可变参数模板、CRTP、混入Mixins。
+- [万能引用、完美转发](docs/contents/template/cxx_citation_forward_universal.md): 万能引用、完美转发。
 
 **元编程:**
 - [元编程基础](docs/contents/meta/cxx_meta_conception.md) 编译期间if语句

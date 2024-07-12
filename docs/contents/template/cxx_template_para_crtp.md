@@ -6,6 +6,7 @@
 * [1. 可变参数模板](#1-可变参数模板)
 * [2. 多态在模板中的应用](#2-多态在模板中的应用)
 * [3. CRTP](#3-crtp)
+* [4. 混入 Mixins](#4-混入-mixins)
 
 --- 
 ### [1. 可变参数模板](#)
@@ -642,3 +643,94 @@ int main()
 }
 ```
 通过原始指针的方式实例化shared_ptr很容易产生同一个原始指针实例化多个shared_ptr这样的编码疏忽，从而造成严重后果。 因此**尽量使用std::make_shared或者std::allocate_shared来降低出错的可能性**。
+
+### [4. 混入 Mixins](#)
+mixin是一种设计思想，用于将相互独立的类的功能组合在一起，以一种安全的方式来模拟多重继承。而c++中mixin的实现通常
+采用 **Template Parameters as Base Classes** 的方法，既实现了多个不交叉的类的功能组合，又避免了多重继承的问题。
+
+**混入的实现手段是把传入的模板参数当作该类模板的父类**。
+
+> 是一种编程手法，用于描述类与类之间的一种关系，这种关系比较类似于多重继承，看起来更像颠倒过来的继承（基类继承自派生类）。
+
+```c++
+template<class T>
+class Father : public T
+{
+    //todo
+};
+
+template<typename... T>
+class Base : public T...
+{
+public:
+    void myfunc()
+    {
+        cout << "Base::myfunc()执行了!" << endl;
+    }
+}
+```
+使用例子：
+```c++
+template <typename T>
+class DerivePrint1 : public T
+{
+public :
+    void print() {
+        cout<<"Hello World 1!"<<endl;
+        T::print();
+    }
+};
+
+template <typename T>
+class DerivePrint2 : public T
+{
+public :
+    void print() {
+        cout<<"Hello World 2!"<<endl;
+        T::print();
+    }
+};
+
+class myClass{
+public:
+    void print(){
+        cout<<"myClass"<<endl;
+    }
+};
+
+
+int main()
+{
+    myClass my1;
+    my1.print();
+    cout<<"-----------------------"<<endl;
+    DerivePrint1<myClass> my2;
+    my2.print();
+     cout<<"-----------------------"<<endl;
+    DerivePrint2<myClass> my3;
+    my3.print();
+     cout<<"-----------------------"<<endl;
+    DerivePrint2<DerivePrint1<myClass>> my4;
+    my4.print();
+     cout<<"-----------------------"<<endl;
+    DerivePrint1<DerivePrint2<myClass>> my5;
+    my5.print();
+}
+
+其输出结果如下：
+myClass
+-----------------------
+Hello World 1!
+myClass
+-----------------------
+Hello World 2!
+myClass
+-----------------------
+Hello World 2!
+Hello World 1!
+myClass
+-----------------------
+Hello World 1!
+Hello World 2!
+myClass
+```
