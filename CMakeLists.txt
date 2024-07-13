@@ -58,7 +58,7 @@ message(STATUS "Download googletest binary dir: ${googletest_BINARY_DIR}")
 message(STATUS "Download benchmark binary dir: ${benchmark_BINARY_DIR}")
 message(STATUS "Download benchmark binary dir: ${benchmark_BINARY_DIR}")
 
-set(PROGRAM_NAME MAIN)
+set(PROGRAM_NAME runner)
 
 include_directories(include)
 
