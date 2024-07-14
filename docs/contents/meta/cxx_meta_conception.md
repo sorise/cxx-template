@@ -125,3 +125,31 @@ int main() {
     return 0;
 }
 ```
+
+### [2. Type traits](#)
+类型特征（Type Traits）是C++标准库中的一部分，主要在 **\<type_traits\>** 头文件中定义，用于在编译时查询和操作类型信息。
+
+类型特征提供了大量模板类，这些模板类可以用于检测或转换类型属性，从而在模板元编程中发挥重要作用。
+
+类型特征可以分为几大类：
+* **类型查询**：检查基础类型类别、复合类型类别，用于检查类型是否具有某种属性、受支持操作例如:
+  * std::is_integral用于检查类型是否为整数类型。
+  * std::is_pointer 检查类型是否为指针类型。
+  * std::is_arithmetic 检查类型是否为算术类型。
+  * std::is_const 检查类型是否为 const 限定。
+  * std::is_polymorphic 检查类型是否为多态类类型
+  * std::rank 获取数组类型的维数属性
+* **类型关系**：类型关系特征可以用于在编译时查询类型之间的关系。
+  * std::is_same :检查两个类型是否相同
+  * std::is_base_of :检查一个类型是是另一个类型的基类
+  * std::is_virtual_base_of :检查一个类型是否是另一个类型的虚基类
+* **类型转换**：用于从一种类型转换到另一种类型，例如:
+  * std::remove_const 用于去除类型的const限定
+  * std::remove_reference 从给定类型移除引用
+  * std::add_lvalue_reference用于给类型添加左值引用。
+* **类型操作**：用于获取或创建新类型，例如:
+  * std::common_type用于找出两个类型的公共类型
+  * std::aligned_storage用于创建对齐存储。
+* **条件选择**：用于根据类型属性选择不同的类型，例如:
+  * std::enable_if 用于在条件满足时启用模板特化
+* [**其他**](https://zh.cppreference.com/w/cpp/meta)
