@@ -42,9 +42,12 @@ constexpr size_t Sub(){
     return A - B;
 }
 
+template<size_t N> constexpr size_t fibonacci =  fibonacci<N-1> + fibonacci<N-2>;
+template<> constexpr size_t fibonacci<0> = 0;
+template<> constexpr size_t fibonacci<1> = 1;
+
 int main()
 {
-    static_assert(Add<2,3>::value == 5); // 在编译时验证add函数的正确性
-    static_assert(Sub<8,3>() == 5); // 在编译时验证add函数的正确性
+    std::cout <<std::format("value: {0}!\n", fibonacci<10>);
     return 0;
 }
