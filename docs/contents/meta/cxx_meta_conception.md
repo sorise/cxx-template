@@ -36,9 +36,17 @@ template<size_t N> constexpr size_t fibonacci =  fibonacci<N-1> + fibonacci<N-2>
 template<> constexpr size_t fibonacci<0> = 0;
 template<> constexpr size_t fibonacci<1> = 1;
 
-int main() {
+template<size_t N> constexpr double golden_ratio = fibonacci<N + 1> * 1.0  / fibonacci<N>;
+
+int main()
+{
     static_assert(Add<3, 5>::value == 8, "Addition failed.");
-    std::cout <<std::format("value: {0}!\n", fibonacci<10>); //value: 55!
+    std::cout.precision(std::numeric_limits<double>::max_digits10);
+    std::cout <<std::format("value: {0}!\n", fibonacci<10>);
+    std::cout <<std::format("golden_ratio: {0}!\n", golden_ratio<20>);
+    //golden_ratio: 1.6180339985218033!
+    std::cout <<std::format("golden_ratio: {0}!\n", golden_ratio<50>);
+    //golden_ratio: 1.618033988749895!
     return 0;
 }
 ```
