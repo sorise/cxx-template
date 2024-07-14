@@ -14,8 +14,8 @@
 - [万能引用、完美转发](docs/contents/template/cxx_citation_forward_universal.md): 万能引用、完美转发。
 
 **元编程:**
-- [元编程概念](docs/contents/meta/cxx_meta_conception.md):定义
-- [constexpr 编程](docs/contents/meta/cxx_meta_constexpr.md) 编译期间if语句
+- [元编程概念](docs/contents/meta/cxx_meta_conception.md): 元编程定义、类型萃取 traits
+- [constexpr 编程](docs/contents/meta/cxx_meta_constexpr.md) constexpr、编译期间if语句
 
 
 ---
