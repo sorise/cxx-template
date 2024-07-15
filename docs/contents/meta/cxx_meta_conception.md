@@ -152,6 +152,7 @@ int main() {
 **类型萃取无须侵入式修改已有类型便能查询该类型相关的特征**，对于无法修改的基本类型也能复用泛型算法。可以将 **trait** 看作
 一个**小对象**，其主要目的是为其他对象或算法传递用于确定“策略”或“实现细节”的信息
 
+
 类型特征可以分为几大类：
 * **类型查询**：检查基础类型类别、复合类型类别，用于检查类型是否具有某种属性、受支持操作例如:
   * std::is_integral用于检查类型是否为整数类型。
@@ -163,11 +164,10 @@ int main() {
   * std::is_same :检查两个类型是否相同
   * std::is_base_of :检查一个类型是是另一个类型的基类
   * std::is_virtual_base_of :检查一个类型是否是另一个类型的虚基类
-* **类型转换**：用于从一种类型转换到另一种类型，例如:
+* **类型转换和操作**：用于从一种类型转换到另一种类型，例如:
   * std::remove_const 用于去除类型的const限定
   * std::remove_reference 从给定类型移除引用
   * std::add_lvalue_reference用于给类型添加左值引用。
-* **类型操作**：用于获取或创建新类型，例如:
   * std::common_type用于找出两个类型的公共类型
   * std::aligned_storage用于创建对齐存储。
   * std::decay 进行等价于按值传递函数实参时进行的类型转换。
@@ -177,3 +177,109 @@ int main() {
 * [**其他**: 逻辑运算、成员关系、符号修饰符、数组、指针](https://zh.cppreference.com/w/cpp/meta)
 
 > 考虑这么一个场景，给定任意类型T，它可能是bool类型、int类型、string类型或者任何自定义的类型，通过type traits技术编译器可以回答一系列问题：它是否为数值类型？是否为函数对象？是不是指针？有没有构造函数？能不能通过拷贝构造？等等。通过这些信息我们就能够提供更具针对性的实现，让编译器在众多选择中决策出最佳的实现。
+
+#### [2.1 类型信息查询](3)
+使用例子：
+```c++
+static_assert(std::is_integral<int>::value); //true
+static_assert(std::is_class<std::string>::value); //true
+static_assert(std::is_floating_point<float>::value); //true
+static_assert(std::is_const_v<const int>); //true
+//获取数组维数
+static_assert(
+        std::rank<int>{} == 0
+    &&  std::rank<int[5]>{} == 1
+    &&  std::rank<int[5][5]>{} == 2
+    &&  std::rank<int[][5][5]>{} == 3 );
+```
+#### [2.2 类型关系](#)
+类型关系特征可以用于在编译时查询类型之间的关系, 类型是否相同、是否是由基础关系。
+
+```c++
+static_assert(std::is_same<int, int>::value); //true
+static_assert(std::is_same<typename std::decay<int[][6]>::type ,int(*)[6]>::value); //true
+static_assert(std::is_base_of_v<Father<Son>, Son>); //true 基础关系
+```
+
+#### [2.3 类型转换和操作](#)
+类型转换特征用于从一种类型转换到另一种类型，例如:
+
+```c++
+#include <iostream>
+#include <type_traits>
+
+struct foo
+{
+    void m() { std::cout << "无 cv\n"; }
+    void m() const { std::cout << "const\n"; }
+    void m() volatile { std::cout << "volatile\n"; }
+    void m() const volatile { std::cout << "const-volatile\n"; }
+};
+ 
+int main()
+{
+    foo{}.m();
+    std::add_const<foo>::type{}.m();
+    std::add_volatile<foo>::type{}.m();
+    std::add_cv<foo>::type{}.m();
+    
+    typename std::remove_cv<const volatile int>::type age = 0;
+
+    static_assert(std::is_same<int, decltype(age)>::value, "age is not int"); // true
+    //从给定类型移除引用
+    static_assert(std::is_same<int, std::remove_reference<int&&>::type>::value, "int&& is not int");//true
+    static_assert(std::is_same<int, std::remove_reference<int&>::type>::value, "int& is not int");//true
+}
+```
+**类型操作**
+```c++
+class A {};
+struct B
+{
+    std::int8_t p;
+    std::int16_t q;
+};
+//提供成员常量 value，它等于类型 T 的对齐要求
+std::cout << std::alignment_of<A>::value << ' '; 
+std::cout << std::alignment_of<B>::value << ' '; 
+std::cout << std::alignment_of<int>() << '\n'; // 另一种语法
+std::cout << std::alignment_of_v<double> << '\n'; // c++17 另一种语法
+//1 2 4 8
+
+template<typename T, T... ints>
+void print_sequence(std::integer_sequence<T, ints...> int_seq)
+{
+    std::cout << "size: " << int_seq.size() << ", sequence: ";
+    ((std::cout << ints << ' '), ...);
+    std::cout << '\n';
+}
+
+print_sequence(std::integer_sequence<unsigned, 9, 2, 5, 1, 9, 1, 6>{});
+//size: 7, sequence: 9 2 5 1 9 1 6
+print_sequence(std::make_integer_sequence<int, 20>());
+//size: 20, sequence: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
+```
+
+#### [2.4 条件选择](#)
+std::enable_if用于在条件满足时启用模板特化，std::conditional基于编译时布尔值选择一个类型或另一个。
+
+是经常使用的两个元模板：
+```c++
+template<class T>
+std::enable_if<std::is_arithmetic<T>::value, long>::type
+ADD_M(T&& v, T&& v2) {
+    auto t1 = static_cast<long>(v + v2);
+    auto t2 = static_cast<long>(v);
+    return t1 % t2;
+} // #1
+
+::printf("number: %ld\n",ADD_M(15.1, 220.2)); //10
+
+using Type1 = std::conditional<true, int, double>::type;
+using Type2 = std::conditional<false, int, double>::type;
+using Type3 = std::conditional<sizeof(int) >= sizeof(double), int, double>::type;
+
+std::cout << typeid(Type1).name() << '\n'; //int
+std::cout << typeid(Type2).name() << '\n'; //double
+std::cout << typeid(Type3).name() << '\n'; //double
+```

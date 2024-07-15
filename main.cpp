@@ -48,13 +48,25 @@ template<> constexpr size_t fibonacci<1> = 1;
 
 template<size_t N> constexpr double golden_ratio = fibonacci<N + 1> * 1.0  / fibonacci<N>;
 
+template<typename T, T... ints>
+void print_sequence(std::integer_sequence<T, ints...> int_seq)
+{
+    std::cout << "size: " << int_seq.size() << ", sequence: ";
+    ((std::cout << ints << ' '), ...);
+    std::cout << '\n';
+}
+
+
+template<class T>
+std::enable_if<std::is_arithmetic<T>::value, long>::type
+ADD_M(T&& v, T&& v2) {
+    auto t1 = static_cast<long>(v + v2);
+    auto t2 = static_cast<long>(v);
+    return t1 % t2;
+} // #1
+
 int main()
 {
-    std::cout.precision(std::numeric_limits<double>::max_digits10);
-    std::cout <<std::format("value: {0}!\n", fibonacci<10>);
-    std::cout <<std::format("golden_ratio: {0}!\n", golden_ratio<20>);
-    //golden_ratio: 1.6180339985218033!
-    std::cout <<std::format("golden_ratio: {0}!\n", golden_ratio<50>);
-    //golden_ratio: 1.618033988749895!
+    ::printf("number: %ld\n",ADD_M(15.1, 220.2));
     return 0;
 }
