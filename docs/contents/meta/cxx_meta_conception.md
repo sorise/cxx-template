@@ -146,12 +146,12 @@ int main() {
 
 ### [2. Type traits](#)
 类型特征/萃取（Type Traits）是C++标准库中的一部分，主要在 **\<type_traits\>** 头文件中定义，用于在编译时查询和操作类型信息。
+还有许多工具类，如：[tuple_element](https://zh.cppreference.com/w/cpp/utility/tuple_element) 在其他头文件中定义。
 
 类型特征提供了大量模板类，这些模板类可以用于检测或转换类型属性，从而在模板元编程中发挥重要作用。
 
 **类型萃取无须侵入式修改已有类型便能查询该类型相关的特征**，对于无法修改的基本类型也能复用泛型算法。可以将 **trait** 看作
 一个**小对象**，其主要目的是为其他对象或算法传递用于确定“策略”或“实现细节”的信息
-
 
 类型特征可以分为几大类：
 * **类型查询**：检查基础类型类别、复合类型类别，用于检查类型是否具有某种属性、受支持操作例如:
@@ -191,6 +191,11 @@ static_assert(
     &&  std::rank<int[5]>{} == 1
     &&  std::rank<int[5][5]>{} == 2
     &&  std::rank<int[][5][5]>{} == 3 );
+
+//元祖元素类型
+static_assert(std::is_same_v<
+        std::tuple_element<1, std::tuple<int, double,std::string>>::type,
+        double>);
 ```
 #### [2.2 类型关系](#)
 类型关系特征可以用于在编译时查询类型之间的关系, 类型是否相同、是否是由基础关系。
@@ -282,4 +287,44 @@ using Type3 = std::conditional<sizeof(int) >= sizeof(double), int, double>::type
 std::cout << typeid(Type1).name() << '\n'; //int
 std::cout << typeid(Type2).name() << '\n'; //double
 std::cout << typeid(Type3).name() << '\n'; //double
+```
+
+### [3. Type Traits作用](#)
+
+#### [3.1 类型内省](#) 
+在计算机科学中，内省是指程序在运行时检查对象的类型或属性的一种能力。在C++中类型萃取过程也可以视作内省，这个萃取过程只是在编译时查询与类型相关的特征。
+
+一个类型本身可以由多个部分组成，例如数组类型int[5]由两部分组成：int类型与常量5构成；容器类型vector<int>由模板类vector与类型int构成；函数类型int(int)由两个int类型构成。
+
+通过使用模板类与特化方式，可以解构一个类型的各个组成部分。
+
+通过使用模板类与特化方式，可以解构一个类型的各个组成部分。考虑最基本的一维数组类型，如何获得数组的长度信息？
+```c++
+template<typename T> struct array_size;
+template<typename E, size_t N>
+struct array_size<E[N]> {
+    using element_type = E;
+    static constexpr size_t size = N;
+};
+
+static_assert(std::is_same_v<array_size<int[5]>::element_type, int>);
+static_assert(array_size<int[5]>::size == 5);
+```
+
+考虑稍微复杂的场景，如何获得函数类型的各个组成部分？函数类型由一个返回类型与多个输入类型组成。
+```c++
+template<typename F> struct function_traits;
+template<typename R, typename... Args>
+struct function_traits<R(Args...)> {
+    using args_type = std::tuple<Args...>;
+    using return_type = R;
+    static constexpr size_t args_size = sizeof...(Args);
+    template<size_t Idx> using arg = std::tuple_element_t<Idx, std::tuple<Args...>>;
+};
+
+
+using F = void(int,float,std::vector<float>);
+static_assert(std::is_same_v<function_traits<F>::return_type, void>);
+static_assert(function_traits<F>::args_size == 3);
+static_assert(std::is_same_v<function_traits<F>::arg<2>, std::vector<float>>);
 ```

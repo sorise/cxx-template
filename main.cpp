@@ -65,8 +65,27 @@ ADD_M(T&& v, T&& v2) {
     return t1 % t2;
 } // #1
 
+template<typename T> struct array_size;
+template<typename E, size_t N>
+struct array_size<E[N]> {
+    using element_type = E;
+    static constexpr size_t size = N;
+};
+
+template<typename F> struct function_traits;
+template<typename R, typename... Args>
+struct function_traits<R(Args...)> {
+    using args_type = std::tuple<Args...>;
+    using return_type = R;
+    static constexpr size_t args_size = sizeof...(Args);
+    template<size_t Idx> using arg = std::tuple_element_t<Idx, std::tuple<Args...>>;
+};
+
 int main()
 {
-    ::printf("number: %ld\n",ADD_M(15.1, 220.2));
+    using F = void(int,float,std::vector<float>);
+    static_assert(std::is_same_v<function_traits<F>::return_type, void>);
+    static_assert(function_traits<F>::args_size == 3);
+    static_assert(std::is_same_v<function_traits<F>::arg<2>, std::vector<float>>);
     return 0;
 }
