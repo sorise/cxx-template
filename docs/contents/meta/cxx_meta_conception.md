@@ -3,6 +3,11 @@
 
 ----
 
+- [1. C++ 元编程](#1-c-元编程)
+- [3. Type Traits](#3-type-traits)
+- [3. Type Traits 应用](#3-type-traits-应用)
+
+---
 ### [1. C++ 元编程](#)
 C++元编程（C++ Metaprogramming）是一种编程技巧，它允许在编译时解决一些问题和计算，生成或修改代码，而不是在运行时执行这些操作。
 
@@ -175,6 +180,7 @@ int main() {
   * std::enable_if 用于在条件满足时启用模板特化
   * std::conditional 基于编译时布尔值选择一个类型或另一个
 * [**其他**: 逻辑运算、成员关系、符号修饰符、数组、指针](https://zh.cppreference.com/w/cpp/meta)
+  * [std::integral_constant、bool_constant、true_type、false_type](https://zh.cppreference.com/w/cpp/types/integral_constant)
 
 > 考虑这么一个场景，给定任意类型T，它可能是bool类型、int类型、string类型或者任何自定义的类型，通过type traits技术编译器可以回答一系列问题：它是否为数值类型？是否为函数对象？是不是指针？有没有构造函数？能不能通过拷贝构造？等等。通过这些信息我们就能够提供更具针对性的实现，让编译器在众多选择中决策出最佳的实现。
 
@@ -289,8 +295,8 @@ std::cout << typeid(Type2).name() << '\n'; //double
 std::cout << typeid(Type3).name() << '\n'; //double
 ```
 
-### [3. Type Traits作用](#)
-
+### [3. Type Traits 应用](#)
+很明显主要作用是达成Java、C#等语言的 **反射** 功能。
 #### [3.1 类型内省](#) 
 在计算机科学中，内省是指程序在运行时检查对象的类型或属性的一种能力。在C++中类型萃取过程也可以视作内省，这个萃取过程只是在编译时查询与类型相关的特征。
 
@@ -322,9 +328,47 @@ struct function_traits<R(Args...)> {
     template<size_t Idx> using arg = std::tuple_element_t<Idx, std::tuple<Args...>>;
 };
 
-
 using F = void(int,float,std::vector<float>);
 static_assert(std::is_same_v<function_traits<F>::return_type, void>);
+//返回值
 static_assert(function_traits<F>::args_size == 3);
+//参数个数
 static_assert(std::is_same_v<function_traits<F>::arg<2>, std::vector<float>>);
+//参数类型
+```
+
+#### [3.2 标签分发](#)
+标签常常是一个空类，辅助类true_type和false_type类型可视作标签。
+
+关键在于将标签作用于重载函数中，根据不同的标签决议出不同的函数版本。
+
+```c++
+template<typename T>
+bool number_equal_impl(T a, T b, std::true_type tp)
+{
+    return ::fabs(a - b) < std::numeric_limits<T>::epsilon();
+}
+
+template<typename T>
+bool number_equal_impl(T a, T b, std::false_type fp)
+{
+    return a == b;
+}
+
+template<typename T>
+bool number_equal(T a, T b)
+{
+    return number_equal_impl(a, b, std::is_floating_point<T>{});
+}
+```
+还可以使用constexpr来优化为一个函数
+```c++
+template<typename T>
+auto number_equal_test(T a, T b) -> std::enable_if_t<std::is_arithmetic_v<T>, bool>{
+    if constexpr (std::is_integral_v<T>()){
+        return a == b;
+    }else{
+        return ::fabs(a - b) < std::numeric_limits<T>::epsilon();
+    }
+}
 ```
