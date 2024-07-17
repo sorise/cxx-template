@@ -4,9 +4,10 @@
 ----
 
 - [1. C++ 元编程](#1-c-元编程)
-- [3. Type Traits](#3-type-traits)
+- [2. Type Traits](#2-type-traits)
 - [3. Type Traits 应用](#3-type-traits-应用)
 - [4. 概念约束](#4-概念约束)
+- [5. 预定义的标准 Concepts](#5-预定义的标准-concepts)
 
 ---
 ### [1. C++ 元编程](#)
@@ -375,7 +376,11 @@ auto number_equal_test(T a, T b) -> std::enable_if_t<std::is_arithmetic_v<T>, bo
 ```
 
 ### [4. 概念约束](#)
-有时候我们写的模板可能并不适用于所有的类型，或者需要参数具有某些特性，比如一定要有默认构造函数、一定需要const修饰，这个时候我们需要给模板参数增加一些限制。
+C++20 引入了 Concepts，这是一种用于限制类和函数模板的模板类型和非类型参数的命名要求。Concepts 是作为编译时评估的谓词，用于验证传递给模板的模
+板参数。**Concepts 的主要目的是使模板相关的编译器错误更易于人类阅读**。
+
+> 有时候我们写的模板可能并不适用于所有的类型，或者需要参数具有某些特性，比如一定要有默认构造函数、一定需要const修饰，这个时候我们需要给模板参数增加一些限制。
+
 
 #### [4.1 C++ 20之前的约束](#)
 使用静态断言 **static_assert** 的来限制模板的类型户或者特性：
@@ -459,11 +464,6 @@ C++20 引入了 concept 以在编译期检查模板实参是否满足指定的�
 > 概念是一种语法和语义机制，用于在模板中指定类型应该满足的条件或行为。 这使得编译器能够在编译时验证类型是否符合预期的行为模式，从而提高了代码的可读性和健壮性。
 > 概念可以被视为类型的一种“协议”或“契约”。
 
-**语法**
-```
-template < 模板形参列表 >
-concept 概念名 = 约束表达式;
-```
 **定义概念**：
 ```c++
 template <typename T>
@@ -510,4 +510,188 @@ concept Hashable = requires(T a)
 
 template<typename T>
 concept RevIterator = Decrementable<T> && requires(T t) { *t; };
+```
+关于concept的逻辑运算
+```c++
+template <typename _Tp>
+concept signed_integral = integral<_Tp> && is_signed_v<_Tp>;
+
+template <typename _Tp>
+concept unsigned_integral = integral<_Tp> && !signed_integral<_Tp>;
+```
+
+#### [4.5 Concepts 语法](#)
+定义 Concepts 的通用语法如下：
+```
+template <parameter-list> concept concept-name = constraints-expression;
+```
+Concept 表达式(constraints-expression;)的语法如下：
+```c++
+concept-name<argument-list>
+```
+Concept 表达式评估为真或假。如果评估为真，则称给定的模板参数模拟了该 Concept。
+
+**Constraints Expression**
+
+**常量表达式**: 可直接用作 Concept 定义约束的布尔常量表达式必须精确地计算为布尔值，不进行任何类型转换。例如：
+```c++
+template <typename T>
+concept C = sizeof(T) == 4;
+```
+
+**requires表达式语法如下**
+* **requires** { **requirement-seq** }
+* **requires** ( parameter-list(optional) ) { requirement-seq }
+
+**requirements-seq** 每个要求必须以分号结束。有四种类型的要求：简单要求、类型要求、复合要求和嵌套要求。
+
+**简单要求**
+
+它可以是任意不以 requires 关键字开头的表达式，它断言该表达式是有效的. 只在语言层面上检查该表达式是否有效（编译通过即可），而不会对该表达式进行求值
+```c++
+template <typename T>
+concept Addable = requires(T a, T b) { a + b; };  // a + b 可通过编译即可
+
+//定了某种类型 T 必须支持后缀和前缀 ++ 操作符：
+template <typename T>
+concept Incrementable = requires(T x) {
+    x++;
+    ++x;
+};
+```
+**类型要求**
+类型要求是以typename关键字开始的要求，紧跟typename的是一个类型名，通常可以用来检查嵌套类型、类模板以及
+别名模板特化的有效性。如果模板实参替换失败，则要求表达式的计算结果为false。
+```c++
+template <typename T, typename T::type = 0>
+struct S;
+
+template <typename T>
+using Ref = T&;
+
+template <typename T> concept C = requires
+{
+    typename T::inner; // 要求嵌套类型
+    typename S<T>;     // 要求类模板特化
+    typename Ref<T>;   // 要求别名模板特化
+};
+ 
+template <C c>
+struct M {};
+ 
+struct H {
+    using type = int;
+    using inner = double;
+};
+
+M<H> m;
+
+//要求某种类型 T 具有 value_type 成员：
+template <typename T>
+concept C = requires {
+    typename T::value_type;
+};
+```
+概念C中有3个类型要求，分别为T::inner、S<T>和Ref<T>，它们各自对应的是对嵌套类型、类模板特化和别名模板特化的检查。
+请注意代码中的类模板声明S，它不是一个完整类型，缺少了类模板定义。但是编译器仍然可以编译成功，因为标准明确指出类型要
+求中的命名类模板特化不需要该类型是完整的。
+
+**复合要求** :具有如下形式：
+```c++
+{ expression } noexcept(optional) return-type-requirement(optional) ; 		
+return -type-requirement: -> type-constraint
+```
+例子：
+```c++
+template <class T>
+concept Check = requires(T a, T b) {
+    { a.clear() } noexcept;  // 支持clear,且不抛异常
+    { a + b } noexcept -> std::same_as<int>;  // std::same_as<decltype((a + b)), int>
+};
+
+template <typename T>
+concept C =
+    requires(T x) {
+    {*x};                                 // *x有意义
+    { x + 1 } -> std::same_as<int>;       // x + 1有意义且std::same_as<decltype((x + 1)), int>，即x+1是int类型
+    { x * 1 } -> std::convertible_to<T>;  // x * 1 有意义且std::convertible_to< decltype((x *1),T>，即x*1可转变为T类型
+    {*x} -> std::convertible_to<typename T::inner>;
+    // *x 必须有效、存在 T::inner 类型、*x 必须可转换为 T::inner 类型
+};
+
+//给定类型具有标记为 noexcept 的 swap() 方法：
+template <typename T>
+concept C = requires (T x, T y) {
+    { x.swap(y) } noexcept;
+};
+```
+
+**嵌套要求**
+```c++
+template <class T>
+concept Check = requires(T a, T b) {
+    requires std::same_as<decltype((a + b)), int>;
+};
+
+template <typename T>
+concept C = requires (T t) {
+    requires sizeof(t) == 4;
+    ++t;
+    --t;
+    t++;
+    t--;
+};
+
+template <typename T>
+concept Comparable = requires(const T a, const T b) {
+    { a == b } -> convertible_to<bool>;
+    { a < b } -> convertible_to<bool>;
+    // ... 对其他比较操作符的类似要求 ...
+};
+
+```
+等同于
+```c++
+template <class T>
+concept Check = requires(T a, T b) {
+    { a + b } -> std::same_as<int>;
+};
+```
+**组合 Concept 表达式** : 使用逻辑运算符组合
+
+现有的 Concept 表达式可以通过使用逻辑运算符“与”（&&）和“或”（||）来组合。例如，假设您有一
+个类似于 Incrementable 的 Decrementable Concept；以下示例展示了一个要求类型同时具
+备增量和减量能力的 Concept：
+```c++
+template <typename T>
+concept IncrementableAndDecrementable = Incrementable<T> && Decrementable<T>;
+```
+
+### [5. 预定义的标准 Concepts](#)
+标准库定义了一系列预定义的 Concepts，分为多个类别。以下列表给出了每个类别中的一些示例 Concepts，所有这些
+都在 \<concepts\> 头文件和 std 命名空间中定义：
+
+* 核心语言 Concepts：`same_as`、`derived_from`、`convertible_to`、`integral`、`floating_point`、`copy_constructible` 等。
+* 比较 Concepts：`equality_comparable`、`totally_ordered` 等。
+* 对象 Concepts：`movable`、`copyable` 等。
+* 可调用 Concepts：`invocable`、`predicate` 等。
+
+此外，\<iterator\> 头文件定义了与迭代器相关的 Concepts，如 random_access_iterator、forward_iterator 等，还定义了算法要求，如 mergeable、sortable、permutable 等。
+
+使用标准 Concepts, 如果这些标准 Concepts 满足您的需求，您可以直接使用它们，无需自己实现。
+
+例如，以下 Concept 要求类型 T 是从类 Foo 派生的：
+```c++
+template <typename T>
+concept IsDerivedFromFoo = derived_from<T, Foo>;
+```
+以下 Concept 要求类型 T 可以转换为 bool：
+```c++
+template <typename T>
+concept IsConvertibleToBool = convertible_to<T, bool>;
+```
+这些标准 Concepts 也可以组合成更具体的 Concepts。例如，以下 Concept 要求类型 T 既是默认构造的也是可拷贝构造的：
+```c++
+template <typename T>
+concept DefaultAndCopyConstructible = default_initializable<T> && copy_constructible<T>;
 ```
