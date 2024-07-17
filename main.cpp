@@ -4,6 +4,7 @@
 #include <stack>
 #include <map>
 #include <algorithm>
+#include <concepts>
 
 #include "ponder/macro/autoget_set.hpp"
 #include "ponder/generics/func/func.hpp"
@@ -15,6 +16,19 @@
 using namespace ponder::generics::cls;
 
 
+template<typename T, typename U>
+concept isChildOf = std::is_base_of<U, T>::value;//类型约束, T必须继承自U
+
+template <typename T>
+concept integral = std::is_integral<T>::value;
+
+integral auto inc(integral auto a) { return ++a; }
+
+template<typename F, typename S>
+requires isChildOf<F, S>
+auto add_one(S* x) -> F* {
+    return static_cast<F*>(x);
+}
 
 
 int main()

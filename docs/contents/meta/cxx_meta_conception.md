@@ -6,6 +6,7 @@
 - [1. C++ 元编程](#1-c-元编程)
 - [3. Type Traits](#3-type-traits)
 - [3. Type Traits 应用](#3-type-traits-应用)
+- [4. 概念约束](#4-概念约束)
 
 ---
 ### [1. C++ 元编程](#)
@@ -377,7 +378,7 @@ auto number_equal_test(T a, T b) -> std::enable_if_t<std::is_arithmetic_v<T>, bo
 有时候我们写的模板可能并不适用于所有的类型，或者需要参数具有某些特性，比如一定要有默认构造函数、一定需要const修饰，这个时候我们需要给模板参数增加一些限制。
 
 #### [4.1 C++ 20之前的约束](#)
-使用静态断言 `static_assert` 的来限制模板的类型户或者特性：
+使用静态断言 **static_assert** 的来限制模板的类型户或者特性：
 
 ```cpp
 //确保模板类的入参类型为integer类
@@ -410,5 +411,103 @@ template <bool _Test, class _Ty = void>
 using enable_if_t = typename enable_if<_Test, _Ty>::type;
 ```
 
+#### [4.2 C++ 20 require、concept](#)
+在C++中，概念（Concepts）和requires关键字是C++20引入的重要特性，它们使得模板元编程更加直观和强大，能够更好地表达意图和约束，[官方文档](https://zh.cppreference.com/w/cpp/language/constraints) 。
 
+#### [4.3 requires关键字](#)
+requires 是 C++20 中引入的一个新关键字，用于在函数模板或类模板中声明所需的一组语义要求，它可以用来限制模板参数，类似于 typename 和 class 关键字。
 
+requires关键字常与type_traits头文件下类型检查函数匹配使用，当requires后的表达式值为true时满足requires条件，代表由其修饰的函数/类的模板参数合法，可以正常使用
+
+requires 关键字可以用于以下两种情况：
+* 在函数模板或成员函数中，使用 requires 关键字限制函数模板或成员函数的参数或返回值必须满足一定的语义要求。例如：
+  * 在这个例子中，使用 requires 关键字限制函数模板参数 T 必须是整数类型。
+```c++
+template <typename T>
+    void print(T t) requires std::is_integral_v<T> {
+    std::cout << t << std::endl;
+}
+```
+* 在类模板或成员类中，使用 requires 关键字限制类模板或成员类必须满足一定的语义要求。例如：
+  * 在这个例子中，使用 requires 关键字限制类模板参数 T 必须是整数类型。
+```c++
+template <typename T>
+requires std::is_integral_v<T>
+class IntContainer {
+public:
+  IntContainer(T t) : value_{t} {}
+private:
+  T value_;
+};
+```
+**注意**:
+* 需要注意的是，requires 关键字仅能用于函数模板和类模板中，不能用于非模板函数和非模板类
+* 此外，requires 关键字的语义要求必须在编译时可验证，否则将引发编译时错误。
+
+除此之外，requires关键字也可以用于类型转换前的检查(假如函数内需要)：
+```c++
+template <typename T>
+int64_t unpack(T v) requires std::is_integral<T>::value
+{
+    return static_cast<int64_t>(v);
+}
+```
+
+#### [4.4 概念 Concepts](#)
+C++20 引入了 concept 以在编译期检查模板实参是否满足指定的约束.
+
+> 概念是一种语法和语义机制，用于在模板中指定类型应该满足的条件或行为。 这使得编译器能够在编译时验证类型是否符合预期的行为模式，从而提高了代码的可读性和健壮性。
+> 概念可以被视为类型的一种“协议”或“契约”。
+
+**语法**
+```
+template < 模板形参列表 >
+concept 概念名 = 约束表达式;
+```
+**定义概念**：
+```c++
+template <typename T>
+concept integral = std::is_integral<T>::value;
+
+```
+上面的代码定义了一个名为isChildOf的概念，要求两个类型T和U，T必须继承自U。
+
+**使用概念**：以下展示四种写法
+```c++
+template <integral T>
+T inc(T& a) { 
+    return ++a; 
+}
+
+integral auto inc(integral auto a) { return ++a; }
+
+//使用这个
+template <typename T>
+T inc(T a) requires integral<T> { return ++a; }
+
+template <typename T>
+requires integral<T> 
+T inc(T a) { return ++a; }
+```
+如果多参数
+```c++
+template<typename T, typename U>
+concept isChildOf = std::is_base_of<U, T>::value;//类型约束, T必须继承自U
+
+template<typename F, typename S>
+requires isChildOf<F, S>
+auto add_one(S* x) -> F* {
+    return static_cast<F*>(x);
+}
+
+// 概念 "Hashable" 的声明可以被符合以下条件的任意类型 T 满足：
+// 对于 T 类型的值 a，表达式 std::hash<T>{}(a) 可以编译并且它的结果可以转换到 std::size_t
+template<typename T>
+concept Hashable = requires(T a)
+{
+    { std::hash<T>{}(a) } -> std::convertible_to<std::size_t>;
+};
+
+template<typename T>
+concept RevIterator = Decrementable<T> && requires(T t) { *t; };
+```
