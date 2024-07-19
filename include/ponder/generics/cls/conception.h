@@ -105,5 +105,72 @@ namespace ponder::generics::cls{
             return ::fabs(a - b) < std::numeric_limits<T>::epsilon();
         }
     }
+
+
+    template<typename T, typename U>
+    concept isChildOf = std::is_base_of<U, T>::value;//类型约束, T必须继承自U
+
+    template <typename T>
+    concept integral = std::is_integral<T>::value;
+
+    integral auto inc(integral auto a) { return ++a; }
+
+    template<typename F, typename S>
+    requires isChildOf<F, S>
+    auto add_one(S* x) -> F* {
+        return static_cast<F*>(x);
+    }
+
+    struct test_class{
+        friend std::ostream& operator<<(std::ostream& os, const test_class& v);
+
+        explicit test_class(const int &v):i(v){
+
+        }
+
+        test_class(const test_class& cls): i(cls.i){
+            std::cout << "copy" << std::endl;
+        }
+
+        test_class(test_class&& cls) noexcept {
+            this->i = cls.i;
+            cls.i = 0;
+            std::cout << "move" << std::endl;
+        }
+    private:
+        int i;
+    };
+
+    std::ostream &operator<<(std::ostream &os, const test_class &v) {
+        os << v.i;
+        return os;
+    }
+
+    test_class return_test_class(){
+        return test_class(0);
+    };
+
+    std::string returnString(){
+        return "hello";
+    }
+
+    template<typename T>
+    void example(T x) {
+        std::cout << x << std::endl;
+    }
+
+    template<typename T>
+    void decay_test(T x) {
+        if constexpr (std::is_const_v<T>){
+            std::cout << "have const." << std::endl;
+        }
+        if constexpr (std::is_same_v<T, int>){
+            std::cout << "int" << std::endl;
+        }else if constexpr (std::is_same_v<T, std::string>){
+            std::cout << "string" << std::endl;
+        } else if constexpr (std::is_same_v<T, int *>){
+            std::cout << "int *" << std::endl;
+        }
+    }
 }
 #endif //CXX_TEMPLATE_CONCEPTION_H

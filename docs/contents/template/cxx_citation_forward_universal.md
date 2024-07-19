@@ -281,3 +281,5 @@ namespace std {
 }
 ```
 
+### [5. std::function](#)
+std::function是C++标准库中的一个类模板，它可以存储一个可调用对象（函数、函数指针、lambda表达式等），并允许调用它。

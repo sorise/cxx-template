@@ -15,27 +15,34 @@
 
 using namespace ponder::generics::cls;
 
-
-template<typename T, typename U>
-concept isChildOf = std::is_base_of<U, T>::value;//类型约束, T必须继承自U
-
-template <typename T>
-concept integral = std::is_integral<T>::value;
-
-integral auto inc(integral auto a) { return ++a; }
-
-template<typename F, typename S>
-requires isChildOf<F, S>
-auto add_one(S* x) -> F* {
-    return static_cast<F*>(x);
+template<typename T>
+void muse_constant(const T& arg){
+    std::cout << typeid(arg).name() << std::endl;
 }
 
+template<typename T>
+requires std::negation<std::bool_constant<std::is_const_v<T>>>::value
+void muse_ref(T& arg)
+{
+    if constexpr(std::is_const_v<T>){
+        std::cout << "const " << typeid(arg).name() << std::endl;
+    }else{
+        std::cout << typeid(arg).name() << std::endl;
+    }
+}
 
 int main()
 {
-    using F = void(int,float,std::vector<float>);
-    static_assert(std::is_same_v<function_traits<F>::return_type, void>);
-    static_assert(function_traits<F>::args_size == 3);
-    static_assert(std::is_same_v<function_traits<F>::arg<2>, std::vector<float>>);
+    const int v = 0;
+    muse_ref(v); //const int
+
+    int vs[] = {1,2,3,4,5,6};
+    muse_ref(vs); //int [6]
+
+    const std::string s = "hello";
+    muse_ref(s); //const std::string
+
+    int i = 0;
+    muse_ref(i);  //int
     return 0;
 }
