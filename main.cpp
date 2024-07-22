@@ -15,14 +15,16 @@
 
 using namespace ponder::generics::cls;
 
-template<typename T>
-void foo (T const& arg1, T const& arg2)
+template<typename T, typename =
+std::enable_if_t<std::is_array_v<T>>>
+void foo (T&& arg1, T&& arg2)
 {
-    //todo
+    //…
 }
+
 
 int main()
 {
-    foo("hi", "guy"); //ERROR
+
     return 0;
 }
