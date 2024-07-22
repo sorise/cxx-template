@@ -172,5 +172,22 @@ namespace ponder::generics::cls{
             std::cout << "int *" << std::endl;
         }
     }
+
+    template<typename T>
+    void muse_constant(const T& arg){
+        std::cout << typeid(arg).name() << std::endl;
+    }
+
+    template<typename T>
+    requires std::negation<std::bool_constant<std::is_const_v<T>>>::value
+    void muse_ref(T& arg)
+    {
+        if constexpr(std::is_const_v<T>){
+            std::cout << "const " << typeid(arg).name() << std::endl;
+        }else{
+            std::cout << typeid(arg).name() << std::endl;
+        }
+    }
+
 }
 #endif //CXX_TEMPLATE_CONCEPTION_H

@@ -16,33 +16,13 @@
 using namespace ponder::generics::cls;
 
 template<typename T>
-void muse_constant(const T& arg){
-    std::cout << typeid(arg).name() << std::endl;
-}
-
-template<typename T>
-requires std::negation<std::bool_constant<std::is_const_v<T>>>::value
-void muse_ref(T& arg)
+void foo (T const& arg1, T const& arg2)
 {
-    if constexpr(std::is_const_v<T>){
-        std::cout << "const " << typeid(arg).name() << std::endl;
-    }else{
-        std::cout << typeid(arg).name() << std::endl;
-    }
+    //todo
 }
 
 int main()
 {
-    const int v = 0;
-    muse_ref(v); //const int
-
-    int vs[] = {1,2,3,4,5,6};
-    muse_ref(vs); //int [6]
-
-    const std::string s = "hello";
-    muse_ref(s); //const std::string
-
-    int i = 0;
-    muse_ref(i);  //int
+    foo("hi", "guy"); //ERROR
     return 0;
 }
