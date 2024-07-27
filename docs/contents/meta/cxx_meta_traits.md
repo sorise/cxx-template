@@ -17,7 +17,7 @@
 #### [1.1 类型萃取的基本作用](#)
 **作用**：在C++中，“类型萃取”（Type Extraction）**是指从模板参数中提取、利用类型信息的过程**。类型萃取是一个非常有用的技术，尤其是在泛型编程中。通过类型萃取，我们可以编写高度灵活且重用性强的代码。
 * 给定任意类型T，它可能是bool类型、int类型、string类型或者任何自定义的类型，通过type traits技术编译器可以回答一系列问题：它是否为数值类型？是否为函数对象？是不是指针？有没有构造函数？能不能通过拷贝构造？等等
-* type traits技术还能对类型进行变换，比如给定任意类型T，能为这个类型添加const修饰符、添加引用或者指针等。而这一切都发生在编译时，过程没有任何运行时开销。
+* type traits技术还能对类型进行**变换**，比如给定任意类型T，能为这个类型添加const修饰符、添加引用或者指针等。而这一切都发生在编译时，过程没有任何运行时开销。
 * **类型安全**：
   1. 在编译时确保使用正确的类型进行操作。
   2. 避免运行时错误，比如类型不匹配引起的错误。
@@ -130,4 +130,155 @@ T accum (T const* beg, T const* end)
     }
     return total;
 }
+```
+
+### [2. 元编程库](#)
+C++标准在头文件 `#include<type_traits>` 中提供了元编程设施，诸如类型特征、编译时有理数算术，以及编译时整数序列。
+
+类型特征定义基于模板的编译时接口，用以查询类型的属性，试图特化在标头 \<type_traits\> 定义且在本页列出的模板会导致未定义行为。
+
+#### [2.1 基类](#)
+大部分非变换类型特征需要无歧义地公开继承 std::integeral_constant，以满足一元类型特征 (UnaryTypeTrait) 或二元类型特征 (BinaryTypeTrait) 的要求。
+
+可能的实现：
+```c++
+template<class T, T v>
+struct integral_constant
+{
+    static constexpr T value = v;
+    using value_type = T;
+    using type = integral_constant; // 使用注入类名
+    constexpr operator value_type() const noexcept { return value; }
+    constexpr value_type operator()() const noexcept { return value; } // C++14 起
+};
+```
+std::integral_constant 包装特定类型的静态常量。它是 C++ 类型特征的基类。 如果程序添加了 std::integral_constant 的特化，那么行为未定义。
+
+**辅助别名模板**：
+针对 T 是 bool 的常用情况定义辅助别名模板 std::bool_constant。
+
+```c++
+template< bool B >
+using bool_constant = integral_constant<bool, B>;
+```
+针对 T 是 bool 的两种常用情形提供 typedef：
+* true_type	`std::integral_constant<bool, true>`
+* false_type	`std::integral_constant<bool, false>`
+
+### [3. 一元类型特征](#)
+一元类型特征可以用于在编译时查询类型的布尔属性，每个类型特征的基特征都是 std::true_type 和 std::false_type 之一，取决于是否符合对应的条件。
+
+#### [3.1 is_void](#)
+检查 T 是否为 void 类型。如果 T 是类型 **void**、**const void**、**volatile void** 或 **const volatile void**，那么提供的成员常量 value 等于 true。否则，value 等于 false。
+
+可能的实现 (**注**：**C++中struct默认继承方式为public，而class为private**。)
+```c++
+//利用继承
+template<class T>
+struct is_void : std::is_same<void, typename std::remove_cv<T>::type> {
+    
+};
+```
+**辅助变量模板**
+```c++
+template< class T >
+inline constexpr bool is_void_v = is_void<T>::value;
+```
+
+#### [3.2 std::is_null_pointer](#)
+如果 T 是类型 **std::nullptr_t**、**const std::nullptr_t**、**volatile std::nullptr_t** 或 **const volatile std::nullptr_t**，那么提供的成员常量 value 等于 true。
+
+**可能的实现：**
+```c++
+template<class T>
+struct is_null_pointer : std::is_same<std::nullptr_t, std::remove_cv_t<T>> {};
+```
+
+**辅助变量模板**
+```c++
+template< class T >
+inline constexpr bool is_null_pointer_v = is_null_pointer<T>::value;
+```
+
+#### [3.3 std::is_floating_point](#)
+检查 T 是否为浮点类型。如果 T 为类型 **float**、**double**、**long double**，或者任何扩展浮点类型（**std::float16_t、std::float32_t、std::float64_t、std::float128_t 或 std::bfloat16_t**） (**C++23** 起)，包括任何 cv 限定变体，那么提供的成员常量 value 等于 true。否则，value 等于 false。
+
+**辅助变量模板:**
+```c++
+template< class T >
+inline constexpr bool is_floating_point_v = is_floating_point<T>::value;
+```
+
+**使用例子:**
+```c++
+template<class T>
+struct is_floating_point
+     : std::integral_constant<
+         bool,
+         // 注：标准浮点类型
+         std::is_same<float, typename std::remove_cv<T>::type>::value
+         || std::is_same<double, typename std::remove_cv<T>::type>::value
+         || std::is_same<long double, typename std::remove_cv<T>::type>::value
+         // 注：扩展浮点类型（C++23，若支持）
+         || std::is_same<std::float16_t, typename std::remove_cv<T>::type>::value
+         || std::is_same<std::float32_t, typename std::remove_cv<T>::type>::value
+         || std::is_same<std::float64_t, typename std::remove_cv<T>::type>::value
+         || std::is_same<std::float128_t, typename std::remove_cv<T>::type>::value
+         || std::is_same<std::bfloat16_t, typename std::remove_cv<T>::type>::value
+     > {};
+```
+
+使用例子：
+```c++
+#include <iostream>
+#include <type_traits>
+ 
+class A {};
+ 
+int main() 
+{
+    std::cout << std::boolalpha;
+    std::cout << "      A: " << std::is_floating_point<A>::value << '\n';
+    std::cout << "  float: " << std::is_floating_point<float>::value << '\n';
+    std::cout << " float&: " << std::is_floating_point<float&>::value << '\n';
+    std::cout << " double: " << std::is_floating_point<double>::value << '\n';
+    std::cout << "double&: " << std::is_floating_point<double&>::value << '\n';
+    std::cout << "    int: " << std::is_floating_point<int>::value << '\n';
+}
+```
+
+#### [3.4 std::is_integral](#)
+检查 T 是否为整数类型。如果 T 是类型 **bool、char、char8_t (C++20 起)、char16_t、char32_t、wchar_t、short、int、long、long long**，或任何实现定义的扩展整数类型，包含任何有符号、无符号及 cv 限定的变体，那么提供的成员常量 value 等于 true。否则，value 等于 false。
+
+**可能的实现：**
+```c++
+
+// 注意：这个实现使用了 C++20 的设施
+template<class T>
+struct is_integral : std::bool_constant<
+    requires (T t, T* p, void (*f)(T)) // T* 形参排除引用类型
+    {
+        reinterpret_cast<T>(t); // 排除类类型
+        f(0); // 排除枚举类型
+        p + t; // 排除除整型以外所有尚未排除的类型
+    }> {};
+```
+
+**辅助变量模板**
+```c++
+template< class T >
+inline constexpr bool is_integral_v = is_integral<T>::value;
+```
+
+
+#### [3.5 ](#)
+
+**可能的实现：**
+```c++
+
+```
+
+**辅助变量模板**
+```c++
+
 ```
